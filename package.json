@@ -11,6 +11,8 @@
     "start": "vinext start",
     "test": "npm run build && node --test tests/site-structure.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "backend:test": "python -m unittest discover -s backend/tests -v",
+    "check": "npm run lint && npm test && npm run backend:test",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

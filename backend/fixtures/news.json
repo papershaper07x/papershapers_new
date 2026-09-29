@@ -1,0 +1,20 @@
+[
+  {
+    "url": "https://example.test/urban-mobility-plan",
+    "title": "What an urban mobility plan could mean for growing Indian cities",
+    "source": "Paper Shapers fixture desk",
+    "summary": "An illustrative policy announcement combines new bus corridors, walking infrastructure, and incentives for cleaner transport.",
+    "body": "This is fixture content for local development, not a live news report. The proposed plan describes bus corridors, pedestrian upgrades, funding milestones, and private-operator participation.",
+    "category": "Policy",
+    "published_at": "2026-09-28T09:00:00+00:00"
+  },
+  {
+    "url": "https://example.test/school-science-grants",
+    "title": "A new science grant programme puts laboratory access in focus",
+    "source": "Paper Shapers fixture desk",
+    "summary": "A demonstration story about laboratory grants and the challenge of measuring student access and outcomes.",
+    "body": "This local fixture exists to test ingestion, persistence, and multi-lens analysis without presenting invented reporting as live news.",
+    "category": "Education",
+    "published_at": "2026-09-27T12:00:00+00:00"
+  }
+]

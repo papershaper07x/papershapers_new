@@ -1,0 +1,8 @@
+import type { Metadata } from "next";
+import { SiteFooter, SiteHeader } from "../components/SiteChrome";
+
+export const metadata: Metadata = { title: "Terms", description: "Terms for using the Paper Shapers study workspace." };
+
+export default function TermsPage() {
+  return <main className="study-information"><SiteHeader /><article className="legal-page page-shell"><p className="kicker">Terms</p><h1>Use it to practise.<br /><em>Keep your judgement switched on.</em></h1><p>Last updated: 29 September 2026</p><h2>What Paper Shapers is</h2><p>Paper Shapers is a free practice and revision tool. Generated papers, answer outlines, and feedback are study support; they are not official CBSE material, certified marking, or a substitute for a teacher’s judgement.</p><h2>Your responsibility</h2><p>Use the service respectfully and do not upload or submit unlawful, harmful, or private material you do not have permission to share. Keep your own account credentials safe.</p><h2>Availability</h2><p>We work to keep the service useful, but generation and connected services can be unavailable or change while the product is improving. We may update these terms when the product changes materially.</p><h2>Feedback</h2><p>When you send product feedback, you allow us to use the ideas to improve Paper Shapers. We do not publish your message as a testimonial without asking you first.</p><h2>Contact</h2><p>Questions about these terms can be sent to <a href="mailto:hello@papershapers.in">hello@papershapers.in</a>.</p></article><SiteFooter /></main>;
+}

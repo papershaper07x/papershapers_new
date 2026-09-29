@@ -40,6 +40,22 @@ const worker = {
       }, allowedWidths);
     }
 
+    const portalPrefixes: Record<string, string> = {
+      learn: "/papershapers",
+      study: "/papershapers",
+      news: "/perspective",
+      perspective: "/perspective",
+      market: "/noticeboard",
+      nearby: "/noticeboard",
+    };
+    const subdomain = url.hostname.split(".")[0];
+    const portalPrefix = portalPrefixes[subdomain];
+    if (portalPrefix && !url.pathname.startsWith("/api/") && !url.pathname.startsWith("/_")) {
+      if (url.pathname === "/") url.pathname = portalPrefix;
+      else if (!url.pathname.startsWith(portalPrefix)) url.pathname = `${portalPrefix}${url.pathname}`;
+      request = new Request(url, request);
+    }
+
     return handler.fetch(request, env, ctx);
   },
 };

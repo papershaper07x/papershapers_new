@@ -40,3 +40,19 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+# Imported legacy/reference applications. These stay available locally for
+# architectural reference but are not shipped: several contain generated
+# artifacts, large datasets, notebooks, and credentials that must be rotated.
+/news_papershapers/
+/newspaper/
+/newspaper2/
+/papershapers/
+
+# Local Python backend state and secrets
+/backend/.env
+/backend/.venv/
+/backend/data/*.db*
+/backend/data/*.jsonl
+/backend/__pycache__/
+/backend/**/__pycache__/

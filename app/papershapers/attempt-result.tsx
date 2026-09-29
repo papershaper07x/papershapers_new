@@ -1,0 +1,14 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import type { StudyAttempt } from "./study-types";
+
+export function AttemptResult({ paperId, attemptId }: { paperId: string; attemptId: string }) {
+  const [attempt, setAttempt] = useState<StudyAttempt | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => { fetch(`/api/study/papers/${paperId}/attempts/${attemptId}`).then(async (response) => { const result = await response.json() as { attempt?: { score?: StudyAttempt }; error?: string }; if (!response.ok || !result.attempt?.score) throw new Error(result.error ?? "Attempt not found."); setAttempt(result.attempt.score); }).catch((reason: Error) => setError(reason.message)); }, [paperId, attemptId]);
+  if (error) return <main className="study-route page-shell"><p className="form-error">{error}</p><Link href="/papershapers/dashboard">Return to your study desk →</Link></main>;
+  if (!attempt) return <main className="study-route page-shell"><p className="route-loading">Preparing your practice feedback…</p></main>;
+  return <main className="study-route"><section className="result-hero page-shell"><p>Practice feedback · {attempt.provider}</p><h1>{attempt.percentage}%</h1><strong>{attempt.earned_marks} / {attempt.total_marks} marks</strong><p>{attempt.summary}</p>{attempt.verification && <aside className="verification-note"><strong>{attempt.verification.status === "validated" ? "Model response verified" : "Local rubric used"}</strong><p>{attempt.verification.detail}</p></aside>}<div><Link className="button button--accent" href={`/papershapers/papers/${paperId}/attempt`}>Try again</Link><Link className="text-link" href="/papershapers/dashboard">Back to study desk</Link></div></section><section className="result-breakdown page-shell"><div className="result-breakdown__heading"><p className="kicker">Your work, in context</p><h2>Question-by-question review</h2><p>Compare the question, your response, and the next improvement before opening the answer outline.</p></div>{attempt.breakdown.map((item) => <article key={item.question_id}><div><strong>{item.question_id}</strong><span>{item.earned_marks} / {item.available_marks} marks</span></div><section className="review-block"><span>Question</span><h3>{item.question_text || "Question details were not stored for this earlier attempt."}</h3></section><section className="review-block review-block--response"><span>Your response</span><p>{item.student_answer || "No answer was submitted for this question."}</p></section><section className="review-block review-block--feedback"><span>Practice feedback</span><p>{item.feedback}</p></section><details className="review-outline"><summary>Open answer outline</summary><p>{item.answer_outline}</p></details></article>)}</section></main>;
+}

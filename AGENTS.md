@@ -12,3 +12,4 @@ These rules apply to every change in this repository.
 5. Run `npm run build` and `npm test` before considering a change complete. Check mobile, tablet, and desktop layouts for material UI changes.
 6. Do not couple the portals through hidden client state. Cross-portal navigation uses stable URLs; future backend communication must use versioned contracts.
 7. Keep free-tier deployment compatibility until a documented requirement makes a paid capability necessary.
+8. Add a short entry to `CHANGELOG.md` for user-visible, operational, architectural, or dependency changes. Pure typo fixes may be grouped with the related change.

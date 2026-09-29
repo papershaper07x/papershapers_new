@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader, SiteFooter } from "./components/SiteChrome";
+import { getCurrentUser } from "../lib/auth";
 
 export const metadata: Metadata = {
   title: "Paper Shapers — A house of useful ideas",
@@ -44,10 +45,11 @@ const portals = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const user = await getCurrentUser();
   return (
     <main>
-      <SiteHeader />
+      <SiteHeader user={user} />
       <section className="home-hero page-shell">
         <div className="hero-copy">
           <p className="kicker"><span>Independent studio</span> · Built in India</p>
