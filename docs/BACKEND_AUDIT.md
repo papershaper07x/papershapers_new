@@ -1,6 +1,6 @@
 # Imported backend audit
 
-The folders `newspaper2`, `newspaper`, `papershapers`, and `news_papershapers` were reviewed as reference implementations. They are ignored by the active repository and are not imported at runtime.
+The folders `newspaper2`, `newspaper`, `papershapers`, and `news_papershapers` were reviewed as reference implementations. They now live under the ignored local-only `local-reference-archive/` folder and are not imported at runtime. The active backend uses only the separately retained local source files in `data/study-source/`.
 
 ## What was retained
 

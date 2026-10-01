@@ -6,6 +6,7 @@ export type StudyQuestion = {
   type: string;
   text: string;
   answer_outline?: string;
+  options?: string[];
 };
 
 export type StudyPaper = {

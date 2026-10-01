@@ -57,7 +57,7 @@ async def generate_paper(database: Database, router: LLMRouter, request: StudyPa
     context = context_for_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject, request.chapters)
     guidance = paper_guidance_for_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject)
     cache_key = _generation_cache_key(request, router.settings.study_generation_cache_version)
-    prompt = json.dumps({"task": "Create a curriculum-grounded practice paper as JSON using only the supplied local study context. Do not use template text.", "request": request.model_dump(), "class_label": selected["class_label"], "requested_total_marks": blueprint["total_marks"], "requested_time_minutes": blueprint["time_minutes"], "local_paper_setting_guidance": guidance or "No subject-specific local paper-setting guidance was supplied. Use a balanced assessment layout.", "local_study_context": context, "required_shape": {"title": "string", "board": "string", "grade": "string", "subject": "string", "paper_size": "half|full", "total_marks": "integer", "time_minutes": "integer", "instructions": ["string"], "questions": [{"id": "string", "section": "string", "chapter": "string", "marks": "number", "type": "string", "text": "string", "answer_outline": "string"}], "is_demo": False}}, ensure_ascii=False)
+    prompt = json.dumps({"task": "Create a curriculum-grounded practice paper as JSON using only the supplied local study context. Do not use template text. Use clean, short question IDs (e.g. 'Q1', 'Q2'). For math, chemistry, or physics, you MUST include standard mathematical symbols, formulas, and expressions using standard LaTeX math enclosed in $...$ (inline) or $$...$$ (block) so formulas and integration/differentiation are clearly visible. If a question is an MCQ, include a list of 'options'.", "request": request.model_dump(), "class_label": selected["class_label"], "requested_total_marks": blueprint["total_marks"], "requested_time_minutes": blueprint["time_minutes"], "local_paper_setting_guidance": guidance or "No subject-specific local paper-setting guidance was supplied. Use a balanced assessment layout.", "local_study_context": context, "required_shape": {"title": "string", "board": "string", "grade": "string", "subject": "string", "paper_size": "half|full", "total_marks": "integer", "time_minutes": "integer", "instructions": ["string"], "questions": [{"id": "string", "section": "string", "chapter": "string", "marks": "number", "type": "string", "text": "string", "options": ["string"], "answer_outline": "string"}], "is_demo": False}}, ensure_ascii=False)
     def normalize_and_validate(candidate: dict[str, Any]) -> dict[str, Any]:
         normalized = _normalise_generated_paper(candidate, request)
         _validate_generated_paper(normalized, blueprint, request)
@@ -137,6 +137,7 @@ def _normalise_generated_paper(value: dict[str, Any], request: StudyPaperRequest
                     "type": str(question.get("type") or question.get("question_type") or "constructed-response"),
                     "text": str(question.get("text") or question.get("question") or question.get("question_text") or ""),
                     "answer_outline": str(question.get("answer_outline") or question.get("answer") or question.get("marking_scheme") or question.get("answer_key") or ""),
+                    "options": question.get("options") if isinstance(question.get("options"), list) else None,
                 })
         normalized["questions"] = flattened
     normalized["title"] = normalized.get("title") or normalized.get("paper_title") or f"{request.subject} practice paper"
@@ -168,13 +169,13 @@ def _validate_generated_paper(value: dict[str, Any], blueprint: dict[str, Any], 
         raise ValueError("The model response question marks do not add up to the requested total")
 
 
-def list_papers(database: Database, user_id: str, limit: int = 20, include_mock: bool = True) -> list[dict[str, Any]]:
+def list_papers(database: Database, user_id: str, limit: int = 20, offset: int = 0, include_mock: bool = True) -> list[dict[str, Any]]:
     with database.connect() as db:
         query = "SELECT id, paper_size, board, grade, subject, chapters_json, provider, status, paper_json, created_at FROM generated_papers WHERE user_id = ?"
         if not include_mock:
             query += " AND provider != 'mock'"
-        query += " ORDER BY created_at DESC LIMIT ?"
-        rows = db.execute(query, (user_id, min(max(limit, 1), 50))).fetchall()
+        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        rows = db.execute(query, (user_id, min(max(limit, 1), 51), max(offset, 0))).fetchall()
     return [Database.decode(row, "chapters_json", "paper_json") for row in rows]
 
 

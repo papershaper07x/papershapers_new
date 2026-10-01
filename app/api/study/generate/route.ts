@@ -11,7 +11,8 @@ export async function POST(request: Request) {
   }
   try {
     const result = await backendFetch<{ paper: Record<string, unknown> }>("/v1/study/papers", { method: "POST", body: JSON.stringify({ user_id: user.id, paper_size: body.paperSize, board: body.board || "CBSE", grade: body.grade, subject: body.subject, chapters: body.chapters || [], focus: body.focus }) });
-    const brief = await addStudyRequest(user.id, body.subject, body.grade, body.focus, `${body.paperSize === "full" ? "Full" : "Half"} paper generated`);
+    const paperId = typeof result.paper.id === "string" ? result.paper.id : undefined;
+    const brief = await addStudyRequest(user.id, body.subject, body.grade, body.focus, `${body.paperSize === "full" ? "Full" : "Half"} paper generated`, paperId);
     return Response.json({ ...result, brief }, { status: 201 });
   } catch (error) {
     const message = error instanceof BackendUnavailableError ? "The paper backend is offline. Start it with .\\backend.ps1 run." : error instanceof Error ? error.message : "Paper generation failed.";

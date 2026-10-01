@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock
 os.environ["BACKEND_DB_PATH"] = str(Path(tempfile.mkdtemp()) / "test.db")
 os.environ["LLM_PROVIDER_ORDER"] = "mock"
 os.environ["ALLOW_MOCK_FALLBACK"] = "true"
+os.environ["BACKEND_SHARED_SECRET"] = "backend-test-secret"
 
 from fastapi.testclient import TestClient
 
@@ -24,7 +25,7 @@ from backend.app.study import _generation_cache_key, _load_cached_paper, _store_
 class BackendContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.context = TestClient(app)
+        cls.context = TestClient(app, headers={"X-Backend-Secret": "backend-test-secret"})
         cls.client = cls.context.__enter__()
 
     @classmethod
@@ -42,15 +43,21 @@ class BackendContractTests(unittest.TestCase):
         catalog = self.client.get("/v1/study/catalog")
         self.assertEqual(catalog.status_code, 200)
         self.assertTrue(any(item["grade"] == "10" for item in catalog.json()["classes"]))
-        common = {"user_id": "test-user", "board": "CBSE", "grade": "10", "subject": "Science", "chapters": ["chapter-10 Light – Reflection and Refraction", "chapter-12 Electricity"]}
+        grade = next(item for item in catalog.json()["classes"] if item["grade"] == "10")
+        science = next(item for item in grade["subjects"] if item["subject"] == "Science")
+        common = {"user_id": "test-user", "board": science["board"], "grade": "10", "subject": science["subject"], "chapters": science["chapters"][:2]}
         half = self.client.post("/v1/study/papers", json={**common, "paper_size": "half"})
         full = self.client.post("/v1/study/papers", json={**common, "paper_size": "full"})
         self.assertEqual(half.status_code, 200)
         self.assertEqual(full.status_code, 200)
         self.assertEqual(half.json()["paper"]["total_marks"], 40)
         self.assertEqual(full.json()["paper"]["total_marks"], 80)
+        history_response = self.client.get("/v1/study/papers", params={"user_id": "test-user", "limit": 1})
+        self.assertTrue(history_response.json()["has_more"])
         history = self.client.get("/v1/study/papers", params={"user_id": "test-user"}).json()["items"]
         self.assertEqual(len(history), 2)
+        second_page = self.client.get("/v1/study/papers", params={"user_id": "test-user", "limit": 1, "offset": 1}).json()["items"]
+        self.assertEqual(len(second_page), 1)
         paper_id = half.json()["paper"]["id"]
         paper = self.client.get(f"/v1/study/papers/{paper_id}", params={"user_id": "test-user"})
         self.assertEqual(paper.status_code, 200)
@@ -66,6 +73,11 @@ class BackendContractTests(unittest.TestCase):
         result = self.client.get(f"/v1/study/papers/{paper_id}/attempts/{attempt_id}", params={"user_id": "test-user"})
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.json()["attempt"]["score"]["percentage"], attempt.json()["attempt"]["percentage"])
+
+    def test_private_study_routes_reject_direct_backend_calls_without_the_shared_secret(self) -> None:
+        with TestClient(app) as anonymous_client:
+            response = anonymous_client.get("/v1/study/papers", params={"user_id": "test-user"})
+        self.assertEqual(response.status_code, 401)
 
     def test_study_uses_local_paper_setting_guidance_when_available(self) -> None:
         from backend.app.main import settings
@@ -120,7 +132,10 @@ class BackendContractTests(unittest.TestCase):
         self.assertNotIn("user_id", cached)
 
     def test_owner_can_send_paper_feedback(self) -> None:
-        common = {"user_id": "feedback-user", "board": "CBSE", "grade": "10", "subject": "Science", "chapters": ["chapter-10 Light – Reflection and Refraction"], "paper_size": "half"}
+        catalog = self.client.get("/v1/study/catalog").json()
+        grade = next(item for item in catalog["classes"] if item["grade"] == "10")
+        science = next(item for item in grade["subjects"] if item["subject"] == "Science")
+        common = {"user_id": "feedback-user", "board": science["board"], "grade": "10", "subject": science["subject"], "chapters": science["chapters"][:1], "paper_size": "half"}
         paper_id = self.client.post("/v1/study/papers", json=common).json()["paper"]["id"]
         response = self.client.post(f"/v1/study/papers/{paper_id}/feedback", json={"user_id": "feedback-user", "category": "wording", "comment": "One question needs clearer wording."})
         self.assertEqual(response.status_code, 200)

@@ -1,0 +1,1 @@
+ALTER TABLE `study_requests` ADD `paper_id` text;

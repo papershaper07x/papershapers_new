@@ -36,6 +36,11 @@ app.add_middleware(CORSMiddleware, allow_origins=list(settings.allowed_origins),
 
 
 def require_write_access(x_backend_secret: str | None = Header(default=None)) -> None:
+    if not settings.shared_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Backend write authentication is not configured.",
+        )
     if settings.shared_secret and not hmac.compare_digest(x_backend_secret or "", settings.shared_secret):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid backend credential")
 
@@ -66,8 +71,9 @@ async def create_study_paper(request: StudyPaperRequest) -> dict:
 
 
 @app.get("/v1/study/papers", dependencies=[Depends(require_write_access)])
-def study_history(user_id: str = Query(min_length=1, max_length=100), limit: int = Query(default=20, ge=1, le=50)) -> dict:
-    return {"items": list_papers(database, user_id, limit, include_mock=settings.allow_mock_fallback)}
+def study_history(user_id: str = Query(min_length=1, max_length=100), limit: int = Query(default=20, ge=1, le=50), offset: int = Query(default=0, ge=0, le=10_000)) -> dict:
+    items = list_papers(database, user_id, limit + 1, offset, include_mock=settings.allow_mock_fallback)
+    return {"items": items[:limit], "has_more": len(items) > limit}
 
 
 @app.get("/v1/study/papers/{paper_id}", dependencies=[Depends(require_write_access)])

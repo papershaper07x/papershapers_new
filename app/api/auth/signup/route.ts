@@ -14,10 +14,15 @@ export async function POST(request: Request) {
 
     const passwordResult = await hashPassword(password);
     const user = await createUser({ name, email, passwordHash: passwordResult.hash, passwordSalt: passwordResult.salt });
+    const role = (body as { role?: string }).role === "teacher" ? "teacher" : "student";
+    const institution = (body as { institution?: string }).institution?.trim().slice(0, 100) ?? "";
+    const { setUserRole } = await import("../../../../db/service");
+    await setUserRole(user.id, role, institution, role === "teacher");
+
     const token = randomToken();
     const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await createSessionRecord(user.id, await sha256(token), expires.toISOString());
-    return Response.json({ user }, { status: 201, headers: { "Set-Cookie": sessionCookie(token, request.url, expires) } });
+    return Response.json({ user: { ...user, role } }, { status: 201, headers: { "Set-Cookie": sessionCookie(token, request.url, expires) } });
   } catch (error) {
     console.error("Signup failed", error);
     return Response.json({ error: "We could not create the account. Please try again." }, { status: 500 });

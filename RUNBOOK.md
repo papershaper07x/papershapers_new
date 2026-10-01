@@ -53,6 +53,8 @@ The first sign-up initializes the local tables automatically. Create a local acc
 
 Edit `backend/.env` to configure Gemini. `GEMINI_API_KEYS` accepts a comma-separated development key ring: each request starts at the next key and retries the remaining keys only after a failure. Gemini is the only active paper-generation provider and the API fails without saving a paper if every key cannot return a valid response. `ALLOW_MOCK_FALLBACK` stays false for actual runs. Root `config/local.example.env` documents web-to-backend variables. Never paste provider keys into source files or `NEXT_PUBLIC_*` values.
 
+Google sign-in is optional locally. Copy the three `GOOGLE_*` values from `config/local.example.env` into `.env.local`, create a separate Google Web OAuth client for local use, and register `http://localhost:3000/api/auth/google/callback` exactly. The button remains hidden until all three values are present. Production setup, security behaviour, and final-domain callback testing are in [docs/LAUNCH_READINESS.md](docs/LAUNCH_READINESS.md).
+
 If the current PowerShell policy blocks scripts, prefix the command with `powershell -ExecutionPolicy Bypass -File`, as shown in First run.
 
 ## Change workflow
@@ -80,6 +82,8 @@ Production checklist:
 7. Exercise signup, login, logout, paper generation/history, news ingestion/lenses, listing ranking, preferences, and saved items against a non-production test account.
 
 Netlify or Firebase could host a separately adapted build, but either choice introduces a second runtime/data integration. They are not the baseline while this application relies on Worker hostname routing and D1 bindings.
+
+Read [docs/LAUNCH_READINESS.md](docs/LAUNCH_READINESS.md) before any public launch. It lists the unresolved dependency audit, distributed rate limiting, deletion, minor/school, source-rights, moderation, and host-migration work that a build command cannot verify.
 
 Secrets belong in the selected hosting platform, never in this repository or browser-delivered code.
 

@@ -65,7 +65,7 @@ class Settings:
             nvidia_model=os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3-super-120b-a12b"),
             news_rss_feeds=_split(os.getenv("NEWS_RSS_FEEDS", "")),
             allow_mock_fallback=os.getenv("ALLOW_MOCK_FALLBACK", "false").lower() in {"1", "true", "yes"},
-            study_curriculum_csv_path=Path(os.getenv("STUDY_CURRICULUM_CSV_PATH", "papershapers/text_files_data2.csv")),
+            study_curriculum_csv_path=Path(os.getenv("STUDY_CURRICULUM_CSV_PATH", "data/study-source/text_files_data2.csv")),
             study_generation_cache_version=os.getenv("STUDY_GENERATION_CACHE_VERSION", "2026-09-source-v1"),
             study_generation_cache_hours=max(1, int(os.getenv("STUDY_GENERATION_CACHE_HOURS", "336"))),
         )

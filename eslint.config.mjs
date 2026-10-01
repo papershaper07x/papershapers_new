@@ -14,10 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Imported backend/reference projects are intentionally quarantined from
     // the active application toolchain. Some contain their own generated output.
-    "news_papershapers/**",
-    "newspaper/**",
-    "newspaper2/**",
-    "papershapers/**",
+    "local-reference-archive/**",
+    "data/**",
     "backend/**",
     ".wrangler/**",
     "dist/**",

@@ -26,7 +26,19 @@ button { color: inherit; }
 .button { display: inline-flex; min-height: 51px; align-items: center; justify-content: center; gap: 28px; padding: 0 22px; border: 1px solid var(--ink); border-radius: 3px; font-weight: 800; transition: transform .2s, box-shadow .2s, background .2s; }
 .button:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0 var(--ink); }
 .button--dark { background: var(--ink); color: white; }
-.button--accent { background: var(--lime); }
+.button--accent, a.button--accent, button.button--accent, input.button--accent {
+  background: #c9ff47 !important;
+  color: #111827 !important;
+  font-weight: 900 !important;
+  border: 2px solid #111827 !important;
+  box-shadow: 3px 3px 0 #111827 !important;
+}
+.button--accent:hover, a.button--accent:hover, button.button--accent:hover {
+  background: #b5f524 !important;
+  color: #111827 !important;
+  transform: translate(-2px, -2px) !important;
+  box-shadow: 5px 5px 0 #111827 !important;
+}
 .text-link { font-size: .9rem; font-weight: 700; border-bottom: 1px solid; padding-bottom: 4px; }
 
 /* Chrome */

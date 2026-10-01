@@ -41,13 +41,27 @@ next-env.d.ts
 /outputs/
 /work/
 
-# Imported legacy/reference applications. These stay available locally for
-# architectural reference but are not shipped: several contain generated
-# artifacts, large datasets, notebooks, and credentials that must be rotated.
+# Local-only reference applications and source material. These are kept in one
+# quarantined folder so they cannot be committed or shipped by mistake.
+/local-reference-archive/
+# Empty shells from nested reference repositories can remain after their files
+# are moved on Windows; keep them excluded too.
 /news_papershapers/
 /newspaper/
 /newspaper2/
 /papershapers/
+
+# Imported/generated curriculum material is local operational data, not source
+# code. Re-create or install it locally using the documented source workflow.
+/data/ncert_pdfs/
+/data/*.sqlite
+/data/*.html
+/data/*.json
+/data/study-source/
+/scripts/__pycache__/
+
+# Local packaging output must never become a release artifact by accident.
+/site-deploy.tgz
 
 # Local Python backend state and secrets
 /backend/.env

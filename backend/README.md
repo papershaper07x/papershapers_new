@@ -27,7 +27,7 @@ Useful commands:
 - `GEMINI_API_KEYS`, `GROQ_API_KEYS`, and `NVIDIA_API_KEYS` each accept one key or a comma-separated local development key ring. Each provider rotates its starting slot and retries its remaining slots after a failure. The singular `*_API_KEY` names are accepted as compatibility aliases. Model names live in `GEMINI_MODEL`, `GROQ_MODEL`, and `NVIDIA_MODEL`.
 - `STUDY_GENERATION_CACHE_HOURS` sets the expiry of an identity-free, validated paper cache entry. The cache is written after a successful real generation and read **only** after every configured provider fails. It never shares a paper ID, account, response, attempt, or score. `STUDY_GENERATION_CACHE_VERSION` is part of the cache fingerprint; change it when paper prompting or source data changes materially.
 - `ALLOW_MOCK_FALLBACK=false` is the default: actual runs fail clearly when no configured model returns a valid structured paper. Set it to `true` only for automated tests or isolated UI work.
-- `BACKEND_SHARED_SECRET` optionally protects mutating routes between the web app and API.
+- `BACKEND_SHARED_SECRET` is required for every private Study paper route (create, retrieve, attempt, result, and feedback). Use the same high-entropy value in `backend/.env` and the root `.env.local`; do not expose it to the browser.
 - `BACKEND_ALLOWED_ORIGINS` scopes direct browser access; normally the browser uses same-origin web proxies.
 - `STUDY_CURRICULUM_CSV_PATH` points to the existing local Paper Shapers chapter-content data. The catalog and generation request both validate class, subject, and chapter values against that source; associated local paper-setting guidance is supplied to the model when available.
 

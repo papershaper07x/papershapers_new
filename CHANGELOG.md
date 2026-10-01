@@ -2,7 +2,67 @@
 
 Meaningful repository changes are recorded here so the implementation, product notes, and system design stay aligned.
 
+## 2026-10-01
+
+### Google sign-in and launch readiness
+
+- Added a configuration-gated Google authorization-code sign-in flow with a short-lived HTTP-only state cookie, verified-email requirement, no stored Google access/refresh tokens, and D1 identity links that can safely connect an existing password account.
+- Added the `auth_identities` schema/migration and made the pre-existing runtime-created Live Room tables idempotent in the managed migration so a staging upgrade can be tested safely.
+- Added a public Cookie notice and expanded Privacy/Terms copy for essential cookies, Google sign-in scope, live-room responsibilities, minors, and data-request expectations without presenting prototype content as legal advice.
+- Added `docs/LAUNCH_READINESS.md`, which maps the deployable versus reference folders, explains Google configuration, records why this Cloudflare/D1 branch cannot be deployed to Netlify unchanged, and lists concrete production blockers including the dependency audit, rate limiting, deletion, moderation, source rights, and child-data controls.
+- Replaced unsupported syllabus-coverage, speed, accuracy, and performance claims on the Study landing page with precise source-aware and formative-practice descriptions.
+- Restored an offline CSV fallback for the curriculum loader, kept paper-setting guidance separate from scraped chapter text, and made backend tests select available source-backed chapters rather than stale hard-coded labels.
+- Corrected the Google sign-in redirects to construct mutable response headers before setting the OAuth state/session cookies, resolving the local HTTP 500 on sign-in start.
+- Hardened Study paper access: anonymous visitors are redirected to sign-in from paper, attempt, and result URLs; same-origin APIs already reject anonymous requests; and the local backend now fails closed unless its server-to-server shared secret is configured.
+- Rebuilt generated-paper question rows into stacked, responsive reading blocks so long section and chapter labels no longer squeeze or split the question text.
+- Added linked request-history rows and a paginated private paper archive. The dashboard now shows the four newest papers without hiding older records, and new briefs retain the exact generated-paper ID for a safe reopen link.
+- Quarantined the imported News/Newspaper/reference applications under an ignored local archive, moved the active local curriculum inputs to `data/study-source/`, and excluded generated curriculum files and packaging output from Git.
+
 ## 2026-09-29
+
+### NCERT Curriculum Scraper, Tabular Store & Self-Healing Database
+
+- **Self-Healing Database Migrations:** Resolved `D1_ERROR: no such column: ai_evaluation` by introducing automatic, self-healing dynamic `ALTER TABLE` column migrations in `ensureDatabase()` and `getTestAttendees()` in `db/service.ts`, guaranteeing backward compatibility on pre-existing database files.
+- **Button Contrast Enforcement:** Resolved text visibility on `.button--accent` across all themes and containers by enforcing `color: #111827 !important; background: #c9ff47 !important; font-weight: 900 !important; border: 2px solid #111827 !important;` with explicit inline styles, eliminating low-contrast white-on-lime text.
+- **Gen Z & AI-Empowered Copywriting:** Re-energized Study portal and umbrella landing page copy with vibrant, motivating, student-friendly tone ("Crack CBSE Boards Powered by AI", "Speedrun practice", "Instant AI grading with zero fluff", "Live Exam Arenas").
+- **NCERT Textbook Scraper Pipeline & Class 1–12 Scaling:** Created `scripts/ncert_curriculum_scraper.py` extracting official curriculum metadata, book titles, and chapter PDF URLs from `https://ncert.nic.in/textbook.php`. Scaled to support all grades from Class 1 through Class 12 (`--classes all` or specific grade lists), discovering 1,149 textbooks.
+- **Human-Navigable Directory Structure:** Standardized raw PDF downloads into clean, intuitive folders organized by grade, subject, and book title: `data/ncert_pdfs/Class_{XX}/{Subject}/{Book_Title}/Chapter_{YY}_{code}.pdf`, with automated migration of legacy flat paths.
+- **PyMuPDF Text Extraction & Tabular Storage:** Extracted clean chapter text from NCERT PDFs using PyMuPDF (`fitz`), storing structured data into a modern SQLite store (`data/curriculum_store.sqlite`) with indexes on `(grade, subject)`, exporting a hierarchical JSON catalog (`data/curriculum_catalog.json`), and synchronizing the local study-source CSV.
+- **Dedicated Integrity & Extraction Validator:** Built `scripts/validate_curriculum_extraction.py` and `--validate` flag, allowing educators and auditors to cross-verify that SQLite stored text matches physical chapter PDFs on disk side-by-side with 100% extraction fidelity checks.
+- **Semi-Annual Recurrence Schedule:** Configured 6-month recurrence support (`--schedule-info`) for cron (`0 0 1 */6 *`) and Windows Task Scheduler, alongside manual on-demand triggers (`--run-now`, `--sample`).
+- **Enhanced Backend Curriculum Loader:** Updated `backend/app/curriculum.py` to automatically detect and load from the high-speed indexed SQLite curriculum store with automatic fallback to CSV.
+- **Test Suite Updates:** Extended `tests/live-rooms.test.mjs` to verify scraper structure, database schemas, and recurrence specifications.
+
+### Live Rooms UX, Teacher Verification & AI Evaluation
+
+- **Teacher Verification Layer:** Restricted live room creation to verified educators using a new `user_roles` database table. Added role selection (Student vs. Teacher) and institution capture to the signup flow, and an educator verification gate with institutional confirmation on `/papershapers/for-teachers/rooms`.
+- **Contrast & Readability Fixes:** Resolved button and container contrast issues (black text on dark navy cards in `/for-teachers` and white text on lime `.button--accent`), enforcing high-contrast text and crisp typography across all devices.
+- **CBSE Syllabus Diversity:** Expanded live room creation from a single frozen Class 9 English option to all CBSE Class 9–12 subjects, grades, and paper sizes (full and half papers) with on-demand paper generation.
+- **Educator Review Deck & AI Assessment:** Redesigned student responses into spacious educator review cards. Added an on-demand **Run AI Assessment** action that calculates percentage, earned marks, and question-level formative commentary comparing student answers to expected marking rubrics, stored in `test_attendees.ai_evaluation`.
+- **Interactive Question Visualization:** Created `<QuestionInput>` rendering interactive selectable choice tiles with radio indicators for MCQs, focused single-line inputs for short/fill-in-the-blank questions, and structured multiline textareas for descriptive answers.
+- **Persistent Header Navigation:** Restored `<SiteHeader>` and `<SiteFooter>` on deep live room routes (`/for-teachers/rooms`, `/for-teachers/rooms/:roomId`, `/room`, `/room/:roomId`) with clear breadcrumbs to prevent disorientation.
+- **Formative AI Disclaimers:** Added explicit educational disclaimers across the umbrella homepage, Study landing page, live room review deck, and AI evaluation cards clarifying that AI evaluations are practice estimates to aid teachers and students.
+- **Test Coverage:** Updated `tests/live-rooms.test.mjs` verifying role verification, schema migration, AI evaluation lifecycle, and question input structure.
+
+### Teacher Live Rooms
+
+- Added a live test session functionality in the Paper Shapers portal. Teachers can create a test room using a specific paper ID or select directly from their generated paper library.
+- Students can join using the Room Code landing route (`/papershapers/room`) or direct room link (`/papershapers/room/:roomId`), entering their Name and Roll Number.
+- Implemented an interactive waiting room with status polling for students while the teacher prepares the session.
+- Added teacher authorization controls ensuring only room owners can start or conclude live test rooms.
+- Added student session cookie protection preventing unauthorized submissions across different attendees.
+- Added live attendee monitoring with auto-refresh and quick clipboard join link sharing for teachers.
+- Added real-time student response tables formatting submitted answers question-by-question alongside roll numbers and names.
+- Added `test_rooms` and `test_attendees` tracking tables in the D1/SQLite schema with cascading foreign keys.
+- Added integration test suite `tests/live-rooms.test.mjs` verifying schema, CRUD lifecycle, attendee submission decoding, and route structure.
+
+### Local-first Journal and dedication
+
+- Made the repository’s working policy explicit: keep development local, removed its ChatGPT Sites project configuration and packaging plugin, and added a Netlify handoff document that explains the current Cloudflare Worker/D1 incompatibility and the migration steps required before a deliberate Netlify launch.
+- Added a Paper Shapers Journal with editorial starter guides, structured metadata, paper-note visual motion, and a dedicated personal dedication page.
+- Added signed-in Journal submissions with a pending-review state. Public Journal pages show only explicitly published entries; there are no comments, direct messages, uploads, learner-score fields, or automatic public posting.
+- Extended the Study navigation/footer and responsive styles for the new content routes, with scroll reveals that respect reduced-motion preferences.
+- Added named project credits for Harsh Kushwaha and Ankit Varshney to the dedication page.
 
 ### Study paper lifecycle
 

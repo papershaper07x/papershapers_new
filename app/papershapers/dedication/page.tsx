@@ -1,0 +1,14 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ScrollReveal } from "../../components/ScrollReveal";
+import { StudyInformationLayout } from "../information-layout";
+
+export const metadata: Metadata = { title: "A small dedication", description: "The personal note behind Paper Shapers." };
+
+export default async function DedicationPage() {
+  return <StudyInformationLayout eyebrow="A small dedication" title={<>For the people who made<br />the long nights feel <em>lighter.</em></>} lede="Paper Shapers began with the belief that a study tool should feel like someone has left the desk lamp on for you. This page is for a brother and a friend who helped make that belief real.">
+    <section className="study-information__section page-shell dedication-stage"><ScrollReveal className="dedication-note"><article><p className="kicker">A note kept in the margin</p><h2>Thank you for the reminders, the patience, and the belief that small help can travel far.</h2><p>For every late-night question, every rough idea, and every quiet “keep going”. This is a small corner of Paper Shapers kept for you.</p><span>With love and gratitude.</span></article></ScrollReveal><ScrollReveal className="dedication-side"><p className="kicker">Why it stays here</p><p>Study is personal. Behind every practice paper is someone hoping to feel a little less stuck. We want the site to remember that feeling, even as it grows.</p><Link className="text-button" href="/papershapers">Back to the study desk →</Link></ScrollReveal></section>
+    <section className="study-information__section page-shell"><div className="dedication-credits-heading"><p className="kicker">The people behind the work</p><h2>Built with care,<br /><em>kept moving by people.</em></h2></div><div className="dedication-credits"><ScrollReveal><article><p className="dedication-credit__number">01</p><h3>Harsh Kushwaha</h3><strong>Project Lead &amp; System Architect</strong><p>Orchestrated project lifecycle management, designed core system architecture, and led backend research initiatives for scalable educational solutions.</p></article></ScrollReveal><ScrollReveal><article><p className="dedication-credit__number">02</p><h3>Ankit Varshney</h3><strong>Frontend Architect</strong><p>Designed and implemented the React-based UI/UX, developed core application workflows, and engineered API integration layers for seamless interaction.</p></article></ScrollReveal></div></section>
+    <section className="study-information__section study-information__section--ink"><div className="page-shell dedication-promise"><p className="kicker">The promise</p><h2>Make the next step<br />easier to see.</h2><p>That is the whole idea: a calmer way to practise, reflect, and begin again.</p></div></section>
+  </StudyInformationLayout>;
+}
