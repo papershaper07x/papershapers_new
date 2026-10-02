@@ -25,22 +25,31 @@ function secureCookieFlag(requestUrl: string) {
 }
 
 export function googleOAuthIsConfigured() {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_OAUTH_REDIRECT_URI);
+  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 }
 
 export function googleOAuthConfig(requestUrl: string): GoogleOAuthConfig | null {
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim();
-  if (!clientId || !clientSecret || !redirectUri) return null;
+  if (!clientId || !clientSecret) return null;
+
   try {
-    const url = new URL(redirectUri);
-    const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
-    if ((!local && url.protocol !== "https:") || new URL(requestUrl).hostname !== url.hostname) return null;
+    const reqUrl = new URL(requestUrl);
+    const local = reqUrl.hostname === "localhost" || reqUrl.hostname === "127.0.0.1";
+    
+    // Enforce HTTPS for non-local environments
+    if (!local && reqUrl.protocol !== "https:") return null;
+    
+    // Dynamically construct the redirect URI using the incoming request's host.
+    // This allows native support for Netlify deploy previews (e.g. https://<hash>--<site>.netlify.app)
+    // without requiring dynamic environment variables per preview branch.
+    // Google's Cloud Console Authorized Redirect URIs list provides the actual security validation.
+    const redirectUri = `${reqUrl.protocol}//${reqUrl.host}/api/auth/google/callback`;
+    
+    return { clientId, clientSecret, redirectUri };
   } catch {
     return null;
   }
-  return { clientId, clientSecret, redirectUri };
 }
 
 export function googleOAuthStateCookie(state: string, requestUrl: string, expires = new Date(Date.now() + 10 * 60 * 1000)) {
