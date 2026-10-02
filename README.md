@@ -1,5 +1,11 @@
 # Paper Shapers
 
+> Knowledge-transfer snapshot — 2 October 2026
+
+This file is the short hand-off for the current repository. It records what is live in
+the code, how the local and hosted pieces fit together, what was deliberately removed,
+and what still blocks a production launch.
+
 Paper Shapers is an umbrella for small, practical digital products. This repository contains one deployable application with three deliberately independent product experiences:
 
 - **Study** (`/papershapers`, future `learn.papershapers.in`) — focused CBSE practice, private paper briefs, and study history.
@@ -7,6 +13,16 @@ Paper Shapers is an umbrella for small, practical digital products. This reposit
 - **Nearby Marketplace** (`/noticeboard`, future `nearby.papershapers.in`) — fresh posts from nearby shops, services, events, and communities, with area and interest preferences.
 
 The current release includes a working local account system, HTTP-only sessions, shared PostgreSQL persistence, portal dashboards, stored preferences, and a separate Python backend. Study papers use the supplied local Paper Shapers curriculum source and fail clearly instead of saving a template when no configured model returns a valid result. The required curriculum input is local-only at `data/study-source/` and intentionally excluded from Git. The backend also stores attempts, returns formative feedback, ingests/analyzes news, and ranks illustrative marketplace listings. Study includes teacher-hosted Live Rooms with student waiting-room polling and live response tracking (`/papershapers/for-teachers/rooms` and `/papershapers/room`), a non-agentic rule-based guide for common student and educator questions, browser-native print/save-to-PDF for generated papers, private paper-feedback capture, a moderated Journal, and a personal dedication page. Feedback is held for human product review and does not automatically influence learner marks, paper prompts, or model training. Editorial review, business verification, and production moderation remain later phases.
+
+## Current release and decisions
+
+- The active web app is a standard Next.js application at the repository root. The old Vite/Vinext/Cloudflare Worker runtime was removed from the active build; the former D1 schema is migration history only.
+- The intended free-tier topology is **Netlify (Next.js web and same-origin server routes) → Render (FastAPI) → Neon (PostgreSQL)**. The browser does not call Render directly; Netlify routes forward authenticated requests with `X-Backend-Secret`.
+- PostgreSQL is the shared persistence target. The Python SQLite adapter remains only for offline tests.
+- Google OAuth, password sessions, paper generation, attempts, feedback, teacher rooms, Journal moderation, and portal navigation are implemented. OAuth stays disabled until the exact callback URI is configured.
+- Render may sleep, Neon may scale to zero, neither has an SLA or guaranteed backups, and Render storage is ephemeral.
+
+During migration, the newspaper/marketplace/reference apps were isolated from the active product. `scripts/migrate_sqlite_to_postgres.py` copies reviewed local records idempotently in dependency order; orphan rows are reported and skipped. Netlify was corrected to use `.next` output and `@netlify/plugin-nextjs`; publishing the repository root as static files caused the earlier generic 404.
 
 ## Run the repo
 
@@ -86,7 +102,7 @@ app/
   noticeboard/         local discovery portal and its product README
   globals.css          shared visual system and responsive rules
 backend/
-  app/                 FastAPI routes, local SQLite adapter, and model router
+  app/                 FastAPI routes, SQLite test adapter, curriculum and model router
   Dockerfile           Render container boundary (after Postgres migration)
   fixtures/            offline illustrative news input
   tests/               backend integration tests
@@ -108,18 +124,20 @@ CHANGELOG.md            human-readable history of repository changes
 RUNBOOK.md              local setup, validation, and deployment handoff
 run.ps1                 Windows command runner
 db/
-  schema.ts            Drizzle source-of-truth for account, study, contact, community, and test room tables
-  service.ts           schema bootstrap and data access boundary
-worker/index.ts         image handling plus hostname-to-portal routing
+  service.ts           PostgreSQL data-access boundary used by Next server routes
+database/migrations/   PostgreSQL schema and migration ledger
+scripts/               SQLite-to-PostgreSQL importer and curriculum utilities
+config/                sanitized deployment examples only
+local-reference-archive/ ignored legacy/reference applications
 ```
 
 ## Architecture decisions
 
 1. **One deployable, multiple bounded products.** This makes the first release inexpensive and easy to maintain. Each portal keeps its own route, UI identity, dashboard, and data boundary and can later be extracted without redesigning it.
-2. **Subdomains at the edge, not browser redirects.** The Worker internally rewrites each hostname to its portal route. The address bar stays on the product subdomain, and the route remains available for local development.
+2. **Stable URLs and portal boundaries.** Production may map subdomains at Netlify/Cloudflare; local development uses stable path routes. No portal depends on hidden client state from another portal.
 3. **Server components by default.** Interactive islands are small client components. This limits shipped JavaScript and keeps content fast on low-end mobile devices.
 4. **Shared accessibility, distinct product voices.** Study uses a navy-and-gold academic workbench, Perspective uses an editorial reading room, and Nearby uses a bright location-first marketplace. They no longer share a generic card language.
-5. **Replaceable backend adapters.** The Python service uses SQLite locally and will use shared Neon PostgreSQL on Render. Its explicit server-side Gemini/Groq/NVIDIA NIM sequence, owner-scoped contracts, and expiry-bound identity-free recovery cache remain behind authenticated Netlify server routes; credentials never reach the browser.
+5. **Replaceable backend adapters.** The Python service uses SQLite only for offline tests and shared Neon PostgreSQL in Render. Its explicit server-side Gemini/Groq/NVIDIA NIM sequence, owner-scoped contracts, and expiry-bound identity-free recovery cache remain behind authenticated Netlify server routes; credentials never reach the browser.
 
 Full architecture and rollout details live in [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md). The interaction model and responsive behaviour are documented in [docs/UI_UX_GUIDE.md](docs/UI_UX_GUIDE.md).
 
@@ -137,3 +155,33 @@ Before a public launch, read [docs/LAUNCH_READINESS.md](docs/LAUNCH_READINESS.md
 ## Documentation contract
 
 Every functional or architectural change must update the closest portal README and, when the change affects shared behaviour, this README or `docs/SYSTEM_DESIGN.md`. User-visible and operational changes are also recorded in `CHANGELOG.md`. The standing rule is recorded in `AGENTS.md` so future contributors and coding agents inherit it automatically.
+
+## Deployment hand-off
+
+1. **GitHub:** push the repository, including `netlify.toml`, `backend/Dockerfile`, and migrations. Never commit `.env*`, API keys, database URLs, curriculum PDFs, generated stores, or local reference apps.
+2. **Neon:** set `DATABASE_URL` in Netlify and Render, then run `npm run db:migrate:postgres` once against the target database. Export backups regularly.
+3. **Render:** create a Web Service using root build context and `backend/Dockerfile`; health check `/health`. Set `DATABASE_URL`, `BACKEND_SHARED_SECRET`, model keys, and `PORT`. The API root returning 404 is expected.
+4. **Netlify:** use repository root, build command `npm run build`, and checked-in `netlify.toml` (publish `.next`, `@netlify/plugin-nextjs`). Set `BACKEND_ORIGIN` to Render, the shared secret, database URL, and Google OAuth values. `BACKEND_ORIGIN` and `GOOGLE_OAUTH_REDIRECT_URI` are configuration URLs, not secret values.
+5. **Cloudflare DNS:** keep Cloudflare as DNS manager. Add the records Netlify provides for `papershapers.in` and `www`; use DNS-only while verifying, then enable proxying only after HTTPS and OAuth callbacks work. Google authorized origins and redirect URIs must match exactly.
+
+### Environment ownership
+
+| Variable | Netlify | Render | Browser |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | yes | yes | never |
+| `BACKEND_SHARED_SECRET` | yes | yes | never |
+| `GOOGLE_CLIENT_SECRET` | yes | no | never |
+| `GOOGLE_CLIENT_ID`, public origins, redirect URI | yes | no | config only |
+| Gemini/Groq/NVIDIA keys | server routes only | yes | never |
+
+Rotate any credential ever pasted into chat, a screenshot, a log, or a committed file before production. Never print secret values while debugging.
+
+## Known blockers and safe next steps
+
+- `data/study-source/` is ignored and is not copied into the Render image. Production paper generation is not ready until an approved curriculum snapshot is imported into the hosted data boundary. Do not substitute dummy questions or claim live CBSE coverage.
+- Configure and test separate localhost and production Google OAuth callbacks.
+- Review the current `npm install` audit findings (including one critical advisory) and upgrade deliberately; do not run `npm audit fix --force` blindly.
+- Add backups/restore drills, rate limits, moderation, deletion requests, and age-appropriate consent before inviting minors. Collect the minimum personal data.
+- Keep deployment reversible: free tiers can sleep or pause, and a health pinger is optional and must respect provider terms.
+
+Useful references: [RUNBOOK.md](RUNBOOK.md), [launch readiness](docs/LAUNCH_READINESS.md), [system design](docs/SYSTEM_DESIGN.md), [Netlify/Render/Neon deployment](docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md), [database README](database/README.md), [backend README](backend/README.md), and portal READMEs under `app/`.

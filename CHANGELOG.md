@@ -2,6 +2,7 @@
 
 ## 2026-10-02
 
+- Expanded the root README into a knowledge-transfer runbook covering the current Next.js/Netlify + FastAPI/Render + Neon architecture, local setup, migration history, environment ownership, Cloudflare DNS, security rules, deployment gotchas, and known production blockers.
 - Fixed production deploys that reported success but served 404 on every route: `netlify.toml` now sets the `.next` publish directory and explicitly enables the Next.js runtime plugin so pages and API routes deploy as functions.
 - Removed inactive Vite, Vinext, Cloudflare and Drizzle build tooling from the deployable package so Netlify reliably selects its Next.js runtime and deploys server/API functions instead of a static repository snapshot.
 - Started the production persistence migration: added one shared PostgreSQL schema, a migration runner, standard Next.js PostgreSQL access, a dual PostgreSQL/SQLite FastAPI adapter, local least-privilege roles, and a successful local PostgreSQL paper-generation integration test.
