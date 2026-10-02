@@ -24,6 +24,10 @@ The current release includes a working local account system, HTTP-only sessions,
 
 During migration, the newspaper/marketplace/reference apps were isolated from the active product. `scripts/migrate_sqlite_to_postgres.py` copies reviewed local records idempotently in dependency order; orphan rows are reported and skipped. Netlify was corrected to use `.next` output and `@netlify/plugin-nextjs`; publishing the repository root as static files caused the earlier generic 404.
 
+**Recent Deployment Updates:**
+- The local `curriculum_store.sqlite` file is now tracked in Git (removed from `.gitignore`) so that the Render backend deployment has access to the NCERT syllabus data, resolving the "installed curriculum source is unavailable" error on production.
+- Custom domain (`papershapers.in`) was successfully migrated from GoDaddy/Firebase to Cloudflare and connected to Netlify via `A` and `CNAME` records configured for `DNS only` (Grey cloud), allowing Netlify to seamlessly provision Let's Encrypt SSL certificates.
+
 ## Run the repo
 
 Requirements: Node.js 22.13 or newer and Python 3.11 or newer.
