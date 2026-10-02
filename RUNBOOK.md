@@ -1,6 +1,10 @@
 # Paper Shapers local runbook
 
-This repository is self-contained in `C:\papershapers`. Local development does not depend on the hosted copy and none of the commands below publish to a cloud service. The Cloudflare Vite plugin runs a local Worker and a persistent local D1 simulation under `.wrangler/state`.
+## PostgreSQL migration
+
+The web application now requires `DATABASE_URL`. FastAPI uses PostgreSQL when it is configured and retains SQLite only for isolated tests. Apply `npm run db:migrate:postgres` before starting either service. See [database/README.md](database/README.md) for runtime roles and the one-time D1/SQLite copy. Never commit a connection string.
+
+This repository is self-contained in `C:\papershapers`. Local development does not depend on the hosted copy and none of the commands below publish to a cloud service. Standard Next.js and FastAPI connect to the local PostgreSQL database through separate least-privilege runtime roles.
 
 ## Prerequisites
 
@@ -8,6 +12,7 @@ This repository is self-contained in `C:\papershapers`. Local development does n
 - Node.js 22.13 or newer
 - npm (included with Node.js)
 - Python 3.11 or newer
+- PostgreSQL 15 or newer
 
 ## First run
 
@@ -35,7 +40,7 @@ Open `http://localhost:3000`. The routes are:
 
 Stop the server with `Ctrl+C`.
 
-The first sign-up initializes the local tables automatically. Create a local account at `http://localhost:3000/auth`; it is stored only in the local Miniflare D1 database.
+Apply the shared migration before first run, then create a local account at `http://localhost:3000/auth`. Runtime services verify the schema and do not create production tables.
 
 ## Runner commands
 
@@ -69,19 +74,18 @@ If the current PowerShell policy blocks scripts, prefix the command with `powers
 
 ## Hosting handoff
 
-The selected production target is Cloudflare Workers + D1 because the same Worker runtime and binding APIs run locally, D1 has a free plan, and one deployment can serve several custom subdomains. Hosting is intentionally not embedded in `run.ps1`; publishing is an explicit, separately reviewed action.
+The selected production target is Netlify for Next.js, Render for FastAPI, and Neon for PostgreSQL. Hosting is intentionally not embedded in `run.ps1`; publishing is an explicit, separately reviewed action.
 
 Production checklist:
 
-1. Create a production D1 database and bind it as `DB`.
-2. Apply every SQL migration in `drizzle/` to production in numeric order before accepting accounts. Runtime `CREATE TABLE IF NOT EXISTS` remains a safety net, not the desired release process.
-3. Configure the four `NEXT_PUBLIC_*_ORIGIN` values documented in the root README.
-4. Attach `papershapers.in`, `learn.papershapers.in`, `news.papershapers.in`, and `nearby.papershapers.in` as Custom Domains on the same Worker.
-5. Confirm cookies are issued with `Domain=.papershapers.in`, `Secure`, `HttpOnly`, and `SameSite=Lax`.
-6. Deploy the Python sidecar to a container-capable host, replace SQLite with managed storage before multi-instance scaling, and set the web runtime's `BACKEND_ORIGIN` and matching shared secret.
-7. Exercise signup, login, logout, paper generation/history, news ingestion/lenses, listing ranking, preferences, and saved items against a non-production test account.
+1. Create Neon preview and production databases and apply `database/migrations/` using a migration role.
+2. Deploy Render from `backend/Dockerfile`; set its Neon `DATABASE_URL`, model keys, CORS origin and shared service secret.
+3. Deploy the standard Next.js application to Netlify; set its web-role `DATABASE_URL`, Render `BACKEND_ORIGIN`, matching service secret and Google OAuth values.
+4. Configure the four `NEXT_PUBLIC_*_ORIGIN` values and final Google callback URL.
+5. Confirm production cookies are `Secure`, `HttpOnly`, and `SameSite=Lax`; use a parent-domain cookie only when the final subdomain design requires it.
+6. Exercise signup, Google login, logout, generation, paper history, attempts and teacher rooms against a non-production account.
 
-Netlify or Firebase could host a separately adapted build, but either choice introduces a second runtime/data integration. They are not the baseline while this application relies on Worker hostname routing and D1 bindings.
+The complete console-by-console procedure and network rules are in [docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md](docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md).
 
 Read [docs/LAUNCH_READINESS.md](docs/LAUNCH_READINESS.md) before any public launch. It lists the unresolved dependency audit, distributed rate limiting, deletion, minor/school, source-rights, moderation, and host-migration work that a build command cannot verify.
 

@@ -26,83 +26,6 @@ let schemaReady = false;
 export async function ensureDatabase() {
   if (schemaReady) return getDb();
   const db = getDb();
-  const statements = [
-    `CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL, password_salt TEXT NOT NULL, created_at TEXT NOT NULL
-    )`,
-    `CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE,
-      expires_at TEXT NOT NULL, created_at TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )`,
-    "CREATE INDEX IF NOT EXISTS sessions_token_hash_idx ON sessions(token_hash)",
-    `CREATE TABLE IF NOT EXISTS auth_identities (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, provider TEXT NOT NULL,
-      provider_subject TEXT NOT NULL, email TEXT NOT NULL, created_at TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(provider, provider_subject), UNIQUE(user_id, provider)
-    )`,
-    "CREATE INDEX IF NOT EXISTS auth_identities_provider_subject_idx ON auth_identities(provider, provider_subject)",
-    `CREATE TABLE IF NOT EXISTS study_requests (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, subject TEXT NOT NULL, grade TEXT NOT NULL,
-      focus TEXT NOT NULL, status TEXT NOT NULL, paper_id TEXT, is_demo INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )`,
-    "CREATE INDEX IF NOT EXISTS study_requests_user_idx ON study_requests(user_id, created_at DESC)",
-    `CREATE TABLE IF NOT EXISTS user_preferences (
-      user_id TEXT PRIMARY KEY, news_topics TEXT NOT NULL, marketplace_interests TEXT NOT NULL,
-      marketplace_area TEXT NOT NULL, updated_at TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )`,
-    `CREATE TABLE IF NOT EXISTS saved_items (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, portal TEXT NOT NULL, item_key TEXT NOT NULL,
-      title TEXT NOT NULL, metadata TEXT NOT NULL, created_at TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-      UNIQUE(user_id, portal, item_key)
-    )`,
-    "CREATE INDEX IF NOT EXISTS saved_items_user_portal_idx ON saved_items(user_id, portal, created_at DESC)",
-    `CREATE TABLE IF NOT EXISTS contact_submissions (
-      id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL,
-      topic TEXT NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL
-    )`,
-    "CREATE INDEX IF NOT EXISTS contact_submissions_created_idx ON contact_submissions(created_at DESC)",
-    `CREATE TABLE IF NOT EXISTS community_posts (
-      id TEXT PRIMARY KEY, author_id TEXT, author_label TEXT NOT NULL, title TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE, summary TEXT NOT NULL, body TEXT NOT NULL, status TEXT NOT NULL,
-      is_internal INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, published_at TEXT,
-      FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
-    )`,
-    "CREATE INDEX IF NOT EXISTS community_posts_status_published_idx ON community_posts(status, published_at DESC)",
-    "CREATE INDEX IF NOT EXISTS community_posts_author_idx ON community_posts(author_id, created_at DESC)",
-    `CREATE TABLE IF NOT EXISTS user_roles (
-      user_id TEXT PRIMARY KEY, role TEXT NOT NULL DEFAULT 'student',
-      institution TEXT, verified INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )`,
-    `CREATE TABLE IF NOT EXISTS test_rooms (
-      id TEXT PRIMARY KEY, teacher_id TEXT NOT NULL, paper_id TEXT NOT NULL,
-      status TEXT NOT NULL, created_at TEXT NOT NULL
-    )`,
-    `CREATE TABLE IF NOT EXISTS test_attendees (
-      id TEXT PRIMARY KEY, room_id TEXT NOT NULL, name TEXT NOT NULL, roll_number TEXT NOT NULL,
-      status TEXT NOT NULL, options_filled TEXT, score INTEGER, ai_evaluation TEXT, created_at TEXT NOT NULL,
-      FOREIGN KEY (room_id) REFERENCES test_rooms(id) ON DELETE CASCADE
-    )`,
-  ];
-  await db.batch(statements.map((statement) => db.prepare(statement)));
-  try {
-    await db.prepare("ALTER TABLE test_attendees ADD COLUMN ai_evaluation TEXT").run();
-  } catch {}
-  try {
-    await db.prepare("ALTER TABLE test_attendees ADD COLUMN score INTEGER").run();
-  } catch {}
-  try {
-    await db.prepare("ALTER TABLE test_attendees ADD COLUMN options_filled TEXT").run();
-  } catch {}
-  try {
-    await db.prepare("ALTER TABLE study_requests ADD COLUMN paper_id TEXT").run();
-  } catch {}
   await seedCommunityGuides(db);
   schemaReady = true;
   return db;
@@ -301,7 +224,7 @@ export async function createTestRoom(teacherId: string, paperId: string) {
   const createdAt = new Date().toISOString();
   await db.prepare("INSERT INTO test_rooms (id, teacher_id, paper_id, status, created_at) VALUES (?, ?, ?, 'waiting', ?)")
     .bind(id, teacherId, paperId, createdAt).run();
-  return { id, teacherId, paperId, status: "waiting", created_at: createdAt } satisfies TestRoom;
+  return { id, teacher_id: teacherId, paper_id: paperId, status: "waiting", created_at: createdAt } satisfies TestRoom;
 }
 
 export async function getTestRoom(roomId: string) {
@@ -380,7 +303,8 @@ export async function getUserRole(userId: string): Promise<UserRoleProfile> {
 export async function setUserRole(userId: string, role: "student" | "teacher", institution = "", verified = true) {
   const db = await ensureDatabase();
   const now = new Date().toISOString();
-  await db.prepare(`INSERT OR REPLACE INTO user_roles (user_id, role, institution, verified, updated_at)
-    VALUES (?, ?, ?, ?, ?)`)
+  await db.prepare(`INSERT INTO user_roles (user_id, role, institution, verified, updated_at)
+    VALUES (?, ?, ?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET role = excluded.role,
+    institution = excluded.institution, verified = excluded.verified, updated_at = excluded.updated_at`)
     .bind(userId, role, institution, verified ? 1 : 0, now).run();
 }

@@ -31,6 +31,7 @@ class Settings:
     host: str
     port: int
     db_path: Path
+    database_url: str | None
     allowed_origins: tuple[str, ...]
     shared_secret: str | None
     provider_order: tuple[str, ...]
@@ -51,8 +52,9 @@ class Settings:
     def from_env(cls) -> "Settings":
         return cls(
             host=os.getenv("BACKEND_HOST", "127.0.0.1"),
-            port=int(os.getenv("BACKEND_PORT", "8000")),
+            port=int(os.getenv("PORT", os.getenv("BACKEND_PORT", "8000"))),
             db_path=Path(os.getenv("BACKEND_DB_PATH", "backend/data/papershapers.db")),
+            database_url=os.getenv("DATABASE_URL") or None,
             allowed_origins=_split(os.getenv("BACKEND_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001")),
             shared_secret=os.getenv("BACKEND_SHARED_SECRET") or None,
             provider_order=_split(os.getenv("LLM_PROVIDER_ORDER", "gemini,groq,nvidia")),

@@ -15,6 +15,10 @@ const eslintConfig = defineConfig([
     // Imported backend/reference projects are intentionally quarantined from
     // the active application toolchain. Some contain their own generated output.
     "local-reference-archive/**",
+    "news_papershapers/**",
+    "newspaper2/**",
+    "papershapers/**",
+    "examples/**",
     "data/**",
     "backend/**",
     ".wrangler/**",

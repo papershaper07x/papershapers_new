@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-02
+
+- Started the production persistence migration: added one shared PostgreSQL schema, a migration runner, standard Next.js PostgreSQL access, a dual PostgreSQL/SQLite FastAPI adapter, local least-privilege roles, and a successful local PostgreSQL paper-generation integration test.
+- Copied the existing local D1 and backend SQLite records into PostgreSQL with an idempotent importer; dependent room records are ordered after papers and genuinely orphaned diagnostic rows are reported and skipped.
+- Recorded Netlify + Render + Neon as the selected experimental production topology, including five-console setup, network boundaries, environment ownership, preview isolation, cold-start behaviour, backup expectations, and two explicit migration gates.
+- Added the Render Docker build boundary and `PORT` compatibility while retaining SQLite as local-only storage until the PostgreSQL adapter is complete.
+- Defined the staged frontend folder boundary so the physical move happens with the Netlify/PostgreSQL migration instead of creating a cosmetic, broken restructure.
+
 Meaningful repository changes are recorded here so the implementation, product notes, and system design stay aligned.
 
 ## 2026-10-01

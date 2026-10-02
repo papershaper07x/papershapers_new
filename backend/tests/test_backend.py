@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 os.environ["BACKEND_DB_PATH"] = str(Path(tempfile.mkdtemp()) / "test.db")
+os.environ["DATABASE_URL"] = ""
 os.environ["LLM_PROVIDER_ORDER"] = "mock"
 os.environ["ALLOW_MOCK_FALLBACK"] = "true"
 os.environ["BACKEND_SHARED_SECRET"] = "backend-test-secret"

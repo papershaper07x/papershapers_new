@@ -93,7 +93,10 @@ def _store_cached_paper(database: Database, generation_key: str, paper: dict[str
     expires_at = now + timedelta(hours=cache_hours)
     # Cache only validated, identity-free paper content. Do not cache the user ID, paper ID, or attempts.
     with database.connect() as db:
-        db.execute("INSERT OR REPLACE INTO generated_paper_cache (generation_key, provider, paper_json, created_at, expires_at) VALUES (?, ?, ?, ?, ?)", (generation_key, provider, json.dumps(paper), now.isoformat(), expires_at.isoformat()))
+        db.execute("""INSERT INTO generated_paper_cache (generation_key, provider, paper_json, created_at, expires_at)
+          VALUES (?, ?, ?, ?, ?) ON CONFLICT (generation_key) DO UPDATE SET provider = excluded.provider,
+          paper_json = excluded.paper_json, created_at = excluded.created_at, expires_at = excluded.expires_at""",
+          (generation_key, provider, json.dumps(paper), now.isoformat(), expires_at.isoformat()))
 
 
 def _load_cached_paper(database: Database, generation_key: str) -> dict[str, Any] | None:

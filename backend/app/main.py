@@ -17,7 +17,7 @@ from .study import generate_paper, get_attempt, get_paper, list_papers, submit_a
 from .curriculum import catalog
 
 settings = Settings.from_env()
-database = Database(settings.db_path)
+database = Database(settings.db_path, settings.database_url)
 router = LLMRouter(settings)
 
 
@@ -49,7 +49,7 @@ def require_write_access(x_backend_secret: str | None = Header(default=None)) ->
 async def health() -> dict:
     database.initialize()
     providers = await router.provider_status()
-    return {"status": "ok", "database": str(settings.db_path), "providers": providers, "study_generation": {"mode": "mock-enabled" if settings.allow_mock_fallback else "real-model-required", "curriculum_source": str(settings.study_curriculum_csv_path)}}
+    return {"status": "ok", "database": database.engine, "providers": providers, "study_generation": {"mode": "mock-enabled" if settings.allow_mock_fallback else "real-model-required", "curriculum_source": "configured" if settings.study_curriculum_csv_path.exists() else "missing"}}
 
 
 @app.get("/v1/study/catalog")

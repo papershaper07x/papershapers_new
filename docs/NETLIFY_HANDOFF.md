@@ -1,5 +1,7 @@
 # Netlify handoff (migration required before deployment)
 
+> Decision recorded: Netlify web + Render FastAPI + Neon PostgreSQL. The operational checklist now lives in [DEPLOYMENT_NETLIFY_RENDER_NEON.md](DEPLOYMENT_NETLIFY_RENDER_NEON.md); this file retains the original migration rationale.
+
 Paper Shapers is deliberately being developed and verified on the local machine. The repository no longer contains a ChatGPT Sites project configuration or its packaging plugin, so this checkout cannot be published through that path by accident. The current local commands are in [RUNBOOK.md](../RUNBOOK.md).
 
 ## What works locally now

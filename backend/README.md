@@ -1,6 +1,6 @@
 # Local backend
 
-This directory is the local FastAPI sidecar. Its active Study boundary uses SQLite persistence and a configurable, server-only language-model router. It does not depend on the copied legacy projects.
+This directory is the independently deployable FastAPI service. It uses PostgreSQL whenever `DATABASE_URL` is configured and retains SQLite as an isolated test fallback. Production targets Render with Neon PostgreSQL. The configurable language-model router is server-only and does not depend on copied legacy projects.
 
 ## Run locally
 
@@ -63,7 +63,13 @@ Use the provider's dashboard to create a personal development key and check its 
 | `POST /v1/news/batch` | Fixture or configured RSS ingestion | news tables |
 | `GET /v1/marketplace/listings` | Area/interest/freshness-ranked illustrative listings | `marketplace_listings` |
 
-SQLite is deliberately used for local development and a single-instance prototype. A hosted multi-instance release should move these tables to managed Postgres/D1 and place slow generation/ingestion behind a job queue; route schemas can remain stable.
+PostgreSQL is the normal local and hosted persistence layer. SQLite remains only for isolated backend tests. Slow generation/ingestion should move behind a job queue as traffic grows; route schemas can remain stable.
+
+## Render deployment boundary
+
+`backend/Dockerfile` is the production container boundary and accepts Render's `PORT` value. The repository root must be used as its Docker build context. Do not deploy it with SQLite: the free instance filesystem is ephemeral. Follow [the deployment runbook](../docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md).
+
+Render receives LLM keys, `DATABASE_URL`, and `BACKEND_SHARED_SECRET`. It must never receive Google OAuth credentials. Netlify calls the API server-to-server; normal browsers never call the Render URL directly. Free instances sleep after 15 minutes and have an ephemeral filesystem, so the UI must handle cold starts and Neon must own every persistent record.
 
 ## Safety and product limits
 

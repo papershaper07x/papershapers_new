@@ -14,27 +14,27 @@ flowchart LR
   U --> S[Study Lab /papershapers]
   U --> P[Perspective /perspective]
   U --> N[Noticeboard /noticeboard]
-  S --> D1[(Local D1 simulation)]
-  P --> D1
-  N --> D1
+  S --> PG[(PostgreSQL)]
+  P --> PG
+  N --> PG
   U --> AUTH[Shared account + session boundary]
-  AUTH --> D1
-  S --> API[Local FastAPI sidecar]
+  AUTH --> PG
+  S --> API[FastAPI service]
   P --> API
   N --> API
-  API --> SQL[(SQLite content store)]
+  API --> PG
   API --> LLM[Gemini API]
 ```
 
-The web application is a single vinext deployment. Pages render on the server; only focused controls hydrate in the browser. D1 stores accounts, sessions, user-visible study history, saved items, and cold-start preferences. A replaceable FastAPI sidecar owns generated content, news ingestion/analysis, and the marketplace catalogue in local SQLite. Same-origin web API routes enforce identity and shield model credentials. Private Study pages redirect anonymous visitors to sign-in; the corresponding web APIs return `401` without a valid session, and the sidecar rejects all paper create/read/attempt/result/feedback routes unless its server-to-server shared secret is configured and supplied.
+The web application is a standard Next.js deployment. Pages render on the server; only focused controls hydrate in the browser. PostgreSQL stores accounts, sessions, user-visible history, generated content, attempts, rooms, and preferences. Netlify and Render use separate least-privilege roles against one migrated schema; FastAPI owns generated content and model calls. Same-origin web API routes enforce identity and shield model credentials. Private Study pages redirect anonymous visitors to sign-in; the corresponding web APIs return `401` without a valid session, and FastAPI rejects private routes unless its server-to-server shared secret is configured and supplied.
 
 ## Identity and access
 
 ```mermaid
 sequenceDiagram
   participant V as Visitor
-  participant W as Worker / route handler
-  participant D as D1
+  participant W as Next.js route handler
+  participant D as PostgreSQL
   V->>W: Sign up (name, email, password)
   W->>W: PBKDF2-SHA-256 + random salt
   W->>D: Store user + defaults + labelled samples
@@ -200,13 +200,13 @@ To ensure curriculum data remains synchronized with authentic NCERT textbook edi
 - Do not enable an advertising provider until its publisher identifier, privacy disclosures, consent flow where required, and content review are in place. Student answers and attempts must not be advertising-targeting signals.
 - Do not import legacy source-research helpers that embed provider credentials or discard source provenance. Research features must retain dated citations and a reviewer boundary.
 - Before public launch, add durable edge/WAF rate limits for credentials, OAuth entry/callback, public forms, content generation, and room joins. Input validation and SameSite cookies are not a substitute for abuse controls.
-- Before public launch, provide and rehearse an account-deletion workflow that reaches both D1 and the separate paper-generation store; a D1-only deletion would leave user-linked backend records behind.
+- Before public launch, provide and rehearse an account-deletion workflow that removes all user-linked rows from the shared PostgreSQL schema and any retained provider-side data.
 
 ## Deployment strategy
 
-The selected web/identity baseline is Cloudflare Workers + D1. The Python content sidecar can remain local during development and later run on a container-capable host. Set `BACKEND_ORIGIN` only on the Worker and use a shared service secret; do not expose provider keys to browser code. SQLite is suitable for the local single process, but a multi-instance deployment must use managed shared storage. Netlify or Firebase would require adapting the Worker/D1 identity boundary. No local command publishes by accident.
+The selected baseline is Netlify for standard Next.js, Render for stateless FastAPI, and Neon for shared PostgreSQL. Set `BACKEND_ORIGIN` and the shared service secret only in server environments; do not expose provider keys to browser code. Local PostgreSQL mirrors the hosted persistence boundary, while SQLite remains an isolated backend-test fallback. No local command publishes by accident.
 
-This workspace is local-only by product decision. A production publication must be an explicit, separate owner action. The exact decision and migration checklist for a later Netlify deployment is maintained in [NETLIFY_HANDOFF.md](NETLIFY_HANDOFF.md); it calls out the required D1/Worker replacement rather than implying that a Netlify deploy would work unchanged.
+This workspace remains local-only until the owner explicitly publishes it. The exact five-console deployment and network checklist is maintained in [DEPLOYMENT_NETLIFY_RENDER_NEON.md](DEPLOYMENT_NETLIFY_RENDER_NEON.md).
 
 Recommended rollout:
 
@@ -225,3 +225,8 @@ Recommended rollout:
 - The relevant README and this design document reflect every architecture change.
 
 The shared and portal-specific interaction rules are maintained in [UI_UX_GUIDE.md](UI_UX_GUIDE.md). Operational commands and the local-to-hosted handoff are maintained in [../RUNBOOK.md](../RUNBOOK.md).
+# Production target decision
+
+The selected experimental production topology is Netlify for the web runtime, Render for the stateless FastAPI service, and Neon for shared PostgreSQL. Browser traffic remains same-origin at Netlify; authenticated server routes proxy to Render using a rotating high-entropy shared secret. Both services use separate least-privilege database roles. Direct browser-to-Render traffic is outside the supported flow.
+
+The shared PostgreSQL migration, both runtime adapters, least-privilege local roles, and idempotent legacy-data importer are implemented and tested locally. Backend SQLite remains an isolated test fallback. See [DEPLOYMENT_NETLIFY_RENDER_NEON.md](DEPLOYMENT_NETLIFY_RENDER_NEON.md).

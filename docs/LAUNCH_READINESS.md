@@ -37,19 +37,20 @@ The callback rejects missing configuration, a mismatched one-time state cookie, 
 
 ## Hosting decision for today
 
-**Do not deploy the current branch directly to Netlify.** It imports `cloudflare:workers`, uses a Cloudflare D1 binding, and depends on the Worker entry point for subdomain rewrites. A Netlify build might upload files but would not provide a working account, database, or portal-routing service.
+The active application now builds with standard Next.js and uses PostgreSQL. The selected topology is Netlify for the web runtime, Render for FastAPI, and Neon for shared persistence. Publishing remains an explicit owner action after the blockers below are closed.
 
-| Option | Can serve the current app without an architecture rewrite? | Recommended use |
+| Service | Current role | Requirement before launch |
 | --- | --- | --- |
-| Cloudflare Workers + D1 | Yes | The only production path for this exact branch after launch blockers are closed |
-| Netlify | No | A planned migration: convert the Vinext/Worker layer to supported Next.js or Vite runtime, replace D1 access with a Netlify-compatible database adapter, and re-test every API route |
+| Netlify | Standard Next.js frontend and server routes | Web-role Neon URL, Render origin/secret, OAuth values, final domains |
+| Render | Stateless FastAPI generation service | API-role Neon URL, provider keys, shared secret, strict CORS |
+| Neon | Shared PostgreSQL | Apply `database/migrations/` with a migration role and keep preview/production separate |
 
-Netlify supports modern Next.js and Vite deployments, but that support does not make Cloudflare-specific Worker bindings portable. Netlify also offers a managed Postgres option, which is a possible future persistence target; it is not wired into this repository today. See [Netlify’s framework overview](https://docs.netlify.com/frameworks/) and [Netlify Database guidance](https://docs.netlify.com/build/data-and-storage/netlify-database/getting-started/).
+See [the deployment runbook](DEPLOYMENT_NETLIFY_RENDER_NEON.md) for the console order, variables, role boundaries and rollback gates.
 
 ## Launch blockers
 
 - [ ] Upgrade and re-test the JavaScript dependency tree. The local `npm audit --omit=dev --audit-level=high` reports a critical Next.js advisory plus high-severity `nanoid`, PostCSS, and Sharp findings for the currently installed dependency graph. Do not use a blind forced audit fix while the dev server has Node files locked; update in a branch, rebuild, test, and re-run the audit.
-- [ ] Apply every D1 migration, including `drizzle/0004_aberrant_vulture.sql`, to a fresh staging database and confirm an existing database upgrade is idempotent.
+- [ ] Apply every migration under `database/migrations/` to a fresh Neon preview branch and confirm the migration and legacy importer are idempotent.
 - [ ] Deploy the FastAPI generation service privately with a non-empty `BACKEND_SHARED_SECRET`, an allow-list containing only the final web origin, managed shared persistence, provider-key rotation, timeouts, and health checks.
 - [ ] Add durable rate limits/WAF rules for sign-up, password login, Google callback/start, contact, Journal submission, paper generation, feedback, and live-room joins. The current application validates input but does not yet provide distributed production rate limiting.
 - [ ] Implement and rehearse an end-to-end account deletion process that removes the D1 user record **and** the matching paper/attempt data held by the separate generation service. Until this exists, handle deletion requests manually and do not promise an automatic deletion button.

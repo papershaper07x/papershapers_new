@@ -81,7 +81,7 @@ export default async function TeacherRoomViewPage({ params }: { params: Promise<
     const paper = (raw && "paper" in raw && raw.paper?.questions ? raw.paper : raw) as StudyPaper;
     if (paper) {
       paperTitle = `${paper.subject || "Subject"} · Class ${paper.grade || "9"}`;
-      paperMeta = `${paper.marks || 40} Marks · ${paper.time_minutes || 90} Minutes · ${paper.questions?.length || 0} Questions`;
+      paperMeta = `${paper.total_marks || 40} Marks · ${paper.time_minutes || 90} Minutes · ${paper.questions?.length || 0} Questions`;
     }
   } catch {
     paperMeta = `Custom ID: ${room.paper_id}`;
