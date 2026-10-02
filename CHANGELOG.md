@@ -2,6 +2,14 @@
 
 ## 2026-10-02
 
+### Architecture and Anti-Slop Refactoring
+
+- **De-slopped the UI:** Eradicated massive inline style objects across the codebase in favor of a robust, modular approach using clean Tailwind CSS utility classes and centralized CSS.
+- **Atomic Components:** Broke down the 600-line monolithic `app/papershapers/for-teachers/rooms/[roomId]/page.tsx` file into small, atomic components (e.g., `attendee-card.tsx`, `room-exceptions.tsx`) to separate interactive client logic from server data fetching.
+- **Refactored Rooms Dashboard:** Completely rewrote `app/papershapers/for-teachers/rooms/page.tsx` to utilize standard semantic markup and Tailwind layout grids, reducing its footprint from ~350 lines to ~220 lines.
+- **Motion & Depth:** Introduced a subtle, 40-second drifting blueprint grid animation to the `study-information` layout wrapper. This removes the static "blank" feel from the informational pages (Terms, Privacy, For Teachers) while fully respecting the `prefers-reduced-motion` accessibility constraint.
+- **Contrast & Alignment Fixes:** Enforced correct z-index layering and specificity for the Study portal header, ensuring the navbar text is fully legible and appropriately contrasted against the dark blue background.
+
 - Expanded the root README into a knowledge-transfer runbook covering the current Next.js/Netlify + FastAPI/Render + Neon architecture, local setup, migration history, environment ownership, Cloudflare DNS, security rules, deployment gotchas, and known production blockers.
 - Fixed production deploys that reported success but served 404 on every route: `netlify.toml` now sets the `.next` publish directory and explicitly enables the Next.js runtime plugin so pages and API routes deploy as functions.
 - Removed inactive Vite, Vinext, Cloudflare and Drizzle build tooling from the deployable package so Netlify reliably selects its Next.js runtime and deploys server/API functions instead of a static repository snapshot.

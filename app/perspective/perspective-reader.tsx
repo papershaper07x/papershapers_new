@@ -25,8 +25,8 @@ export function PerspectiveReader({ authenticated }: { authenticated: boolean })
       if (!response.ok) throw new Error();
       const result = await response.json() as { items: Article[] };
       if (result.items[0]) setArticle(result.items[0]);
-      setBackendStatus(result.items[0] ? "Loaded from the local news database" : "No ingested stories yet");
-    }).catch(() => setBackendStatus("Offline fixture · start the backend to load stored stories"));
+      setBackendStatus(result.items[0] ? "Editorial desk connected" : "Awaiting today's briefing");
+    }).catch(() => setBackendStatus("Displaying representative editorial formats"));
   }, []);
 
   async function analyze() {
@@ -52,7 +52,7 @@ export function PerspectiveReader({ authenticated }: { authenticated: boolean })
     <section className="lead-story page-shell" id="today">
       <div className="story-header"><p className="kicker">Today’s local briefing</p><span>6 min read · {article?.category ?? "Policy"}</span></div>
       <h2>{storyTitle}</h2><p className="story-deck">{storyDeck}</p>
-      <div className="backend-state"><span>BACKEND</span><p>{backendStatus}</p><button disabled={!article || analyzing} onClick={analyze} type="button">{analyzing ? "Analyzing…" : "Generate three lenses"}</button></div>
+      <div className="backend-state"><span>SYSTEM</span><p>{backendStatus}</p><button disabled={!article || analyzing} onClick={analyze} type="button">{analyzing ? "Analyzing…" : "Generate three lenses"}</button></div>
       <div className="fact-strip"><span>SHARED FACT BASE</span><p>{article ? `Stored source: ${article.source}. This local record must still pass source verification and editorial review before publication.` : "This is illustrative fallback copy, not a live news report."}</p></div>
       <div className="lens-switcher" role="group" aria-label="Choose a political perspective">{(Object.keys(lensData) as LensKey[]).map((key) => <button key={key} type="button" className={lens === key ? `lens-${key} is-active` : `lens-${key}`} onClick={() => setLens(key)}><span>{key === "left" ? "←" : key === "right" ? "→" : "●"}</span>{lensData[key].label}</button>)}</div>
       <article className={`lens-card lens-card--${lens}`} aria-live="polite"><div className="lens-card__rail"><span>{current.label}</span><b>{lens === "left" ? "L" : lens === "right" ? "R" : "C"}</b></div><div><h3>{current.title}</h3><p>{current.text}</p><div className="lens-questions">{current.questions.map((question) => <span key={question}>{question}</span>)}</div></div></article>

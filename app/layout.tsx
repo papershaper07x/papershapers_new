@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { inter, sourceSerif, jetbrainsMono } from "./fonts";
 import "./globals.css";
 import "./portal-ui.css";
 
@@ -36,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${sourceSerif.variable} ${jetbrainsMono.variable}`}>
       <body>{children}</body>
     </html>
   );

@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 import { addStudyRequest } from "../../../../db/service";
 import { userFromRequest } from "../../../../lib/auth";
 import { backendFetch, BackendResponseError, BackendUnavailableError } from "../../../../lib/backend";

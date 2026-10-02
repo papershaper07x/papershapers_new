@@ -117,7 +117,7 @@ export default async function Home() {
         <p>Explore what’s here, tell us what feels useful, and come back as these products grow.</p>
         <a className="button button--accent" href="mailto:hello@papershapers.in">Say hello <span>↗</span></a>
       </section>
-      <section className="disclaimer-strip page-shell" style={{ margin: "2rem auto 4rem", padding: "1.25rem 1.5rem", background: "var(--paper-bright)", border: "1px solid var(--line)", borderRadius: "4px", fontSize: "0.85rem", color: "#555", lineHeight: 1.5 }}>
+      <section className="disclaimer-strip page-shell">
         <strong>Educational &amp; AI Practice Disclaimer:</strong> Paper Shapers study mock papers, live rooms, and automated evaluations are formative revision aids. They are neither affiliated with nor endorsed by CBSE or state examination authorities. AI evaluations and practice scores provide educational estimates to assist student revision and educator reviews.
       </section>
       <SiteFooter />

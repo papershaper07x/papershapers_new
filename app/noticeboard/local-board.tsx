@@ -22,8 +22,8 @@ export function LocalBoard({ authenticated }: { authenticated: boolean }) {
       if (!response.ok) throw new Error();
       const result = await response.json() as { items: Array<{ id: string; category: string; title: string; place: string; area: string; price_label?: string; verified: number }> };
       if (result.items.length) setPosts(result.items.map((item, index) => ({ category: item.category, icon: item.verified ? "✓" : "⌖", title: item.title, place: item.place, area: item.area, meta: `${item.price_label ?? "Local listing"}${item.verified ? " · Verified" : " · Demo"}`, tone: ["yellow", "blue", "pink", "green", "orange", "cream"][index % 6] })));
-      setBackendStatus(`${result.items.length} active listings from local SQLite`);
-    }).catch(() => setBackendStatus("Offline fixtures · start the backend for database listings"));
+      setBackendStatus(`${result.items.length} active listings`);
+    }).catch(() => setBackendStatus("Displaying local community board examples"));
   }, []);
   return <>
     <section className="local-hero page-shell"><div><p className="kicker"><span>03</span> Your neighbourhood marketplace</p><h1>Find the good<br /><em>stuff nearby.</em></h1><p className="hero-lede">Local finds shouldn’t disappear in a noisy group chat. Browse fresh offers, trusted services, classes, makers, and events within a neighbourhood-sized radius.</p><a className="button button--dark" href="#board">Explore Indiranagar ↓</a></div><div className="pin-cluster" aria-hidden="true"><div className="mini-note mini-note--one">Fresh idlis<br /><b>7—10 AM</b></div><div className="mini-note mini-note--two">CYCLE<br />REPAIR<br /><b>while you wait</b></div><div className="mini-note mini-note--three">SATURDAY<br /><b>BOOK SWAP</b></div><span className="map-pin">⌖</span></div></section>

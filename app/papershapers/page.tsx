@@ -30,7 +30,7 @@ export default async function StudyLab() {
 
       <section className="portal-hero page-shell">
         <div>
-          <p className="kicker" style={{ color: "#efbd55" }}><span>01</span> STUDY LAB · CBSE 9–12</p>
+          <p className="kicker" style={{ color: "var(--yellow, #efbd55)" }}><span>01</span> STUDY LAB · CBSE 9–12</p>
           <h1>Crush your exams.<br /><em>Next-level prep.</em></h1>
           <p className="hero-lede">
             Zero fluff. Pure exam confidence. Spawn syllabus-targeted practice papers in seconds, squad up in live battle arenas, and get instant feedback with exact marking breakdowns. Straight facts.
@@ -129,25 +129,25 @@ export default async function StudyLab() {
         </div>
       </section>
 
-      <section className="curriculum-highlight page-shell" style={{ margin: '4rem auto', padding: '3rem', background: 'linear-gradient(145deg, #1e1b4b, #312e81)', color: 'white', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
-        <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
-          <span style={{ background: '#c9ff47', color: '#111827', padding: '0.5rem 1rem', borderRadius: '9999px', fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Source-aware practice planning</span>
-          <h2 style={{ fontSize: '2.5rem', marginTop: '1.5rem', marginBottom: '1rem', fontWeight: 800, lineHeight: 1.1 }}>Start from a syllabus slice, not a blank chat.</h2>
-          <p style={{ fontSize: '1.1rem', color: '#c7d2fe', lineHeight: 1.6, marginBottom: '2rem' }}>
+      <section className="curriculum-highlight page-shell">
+        <div className="curriculum-highlight__inner">
+          <span className="curriculum-highlight__badge">Source-aware practice planning</span>
+          <h2>Start from a syllabus slice, not a blank chat.</h2>
+          <p>
             The test planner helps Class 9–12 learners choose a supported subject and chapter set before a paper is requested. It uses the installed curriculum catalogue as context, then checks the returned paper structure and marks before showing it. <strong>Every paper remains practice material, not an official CBSE exam or certified marking result.</strong>
           </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', minWidth: '150px' }}>
-              <strong style={{ fontSize: '1.5rem', color: '#38bdf8', display: 'block' }}>Class 9–12</strong>
-              <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#94a3b8' }}>Planner coverage</span>
+          <div className="curriculum-highlight__grid">
+            <div className="curriculum-highlight__card">
+              <strong>Class 9–12</strong>
+              <span>Planner coverage</span>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', minWidth: '150px' }}>
-              <strong style={{ fontSize: '1.5rem', color: '#38bdf8', display: 'block' }}>Chapter-led</strong>
-              <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#94a3b8' }}>Paper briefs</span>
+            <div className="curriculum-highlight__card">
+              <strong>Chapter-led</strong>
+              <span>Paper briefs</span>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', minWidth: '150px' }}>
-              <strong style={{ fontSize: '1.5rem', color: '#38bdf8', display: 'block' }}>Formative</strong>
-              <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#94a3b8' }}>Review, not ranking</span>
+            <div className="curriculum-highlight__card">
+              <strong>Formative</strong>
+              <span>Review, not ranking</span>
             </div>
           </div>
         </div>
@@ -180,7 +180,7 @@ export default async function StudyLab() {
 
       <StudySupport authenticated={Boolean(user)} contactEmail={process.env.STUDY_CONTACT_EMAIL || "hello@papershapers.in"} />
 
-      <section className="study-disclaimer page-shell" style={{ margin: "3rem auto 2rem", padding: "1.25rem 1.5rem", background: "rgba(217, 184, 95, 0.12)", border: "1px solid #d9b85f", borderRadius: "6px", fontSize: "0.85rem", color: "#4a3c10", lineHeight: 1.6 }}>
+      <section className="study-disclaimer page-shell">
         <strong>CBSE Practice Disclaimer:</strong> Paper Shapers is an independent learning platform. All mock question papers, timed live room sessions, and automated assessments are formative revision aids designed to reinforce chapter concepts and help educators review student learning. They do not constitute official CBSE examination papers, certified answer keys, or accredited grade transcripts.
       </section>
 
