@@ -2,6 +2,7 @@
 
 ## 2026-10-02
 
+- Added explicit Netlify build settings so the deployment publishes the Next.js build output rather than the repository root.
 - Started the production persistence migration: added one shared PostgreSQL schema, a migration runner, standard Next.js PostgreSQL access, a dual PostgreSQL/SQLite FastAPI adapter, local least-privilege roles, and a successful local PostgreSQL paper-generation integration test.
 - Copied the existing local D1 and backend SQLite records into PostgreSQL with an idempotent importer; dependent room records are ordered after papers and genuinely orphaned diagnostic rows are reported and skipped.
 - Recorded Netlify + Render + Neon as the selected experimental production topology, including five-console setup, network boundaries, environment ownership, preview isolation, cold-start behaviour, backup expectations, and two explicit migration gates.
