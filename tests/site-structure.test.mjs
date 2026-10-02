@@ -40,10 +40,11 @@ test("account and dashboard routes exist for every portal", async () => {
   }
 });
 
-test("Netlify uses the standard Next.js build without a static publish override", async () => {
+test("Netlify explicitly enables the Next.js runtime", async () => {
   const config = await readFile(new URL("netlify.toml", root), "utf8");
   assert.match(config, /command = "npm run build"/);
-  assert.doesNotMatch(config, /publish\s*=/);
+  assert.match(config, /publish = "\.next"/);
+  assert.match(config, /package = "@netlify\/plugin-nextjs"/);
 });
 
 test("database schema covers identity and portal state", async () => {

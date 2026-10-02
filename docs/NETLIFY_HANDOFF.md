@@ -25,7 +25,7 @@ Complete every item in the migration checklist first. Then use the Netlify dashb
 
 1. Create a GitHub repository from the reviewed commit and connect that repository in **Netlify → Add new project**.
 2. Select the production branch. Keep deploy previews enabled for pull requests, but give them separate preview environment values and a separate OAuth redirect URI.
-3. Use `npm run build` and allow the Netlify Next.js adapter to manage publish output and route functions; do not set a manual publish directory.
+3. Use the committed `netlify.toml`: it runs `npm run build`, publishes `.next`, and explicitly enables `@netlify/plugin-nextjs` so server pages and API routes become Netlify Functions.
 4. Add server-only environment values in **Site configuration → Environment variables**. At minimum: `BACKEND_ORIGIN`, `BACKEND_SHARED_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI`. Add model-provider keys only to the private Python generation service, never to Netlify.
 5. Add the exact Netlify production callback (`https://your-domain/api/auth/google/callback`) to the Google OAuth client. Add a separate callback for each preview domain only if preview sign-in is deliberately enabled.
 6. Deploy a preview first. Verify account creation, Google sign-in, paper generation, a saved paper, an attempted paper, archive pagination, sign-out, and the data-deletion contact path. Then promote the verified production deploy.
@@ -40,7 +40,7 @@ Complete every item in the migration checklist first. Then use the Netlify dashb
 - [ ] Set the production custom domain and test sign-in, Journal submission, paper generation, print/PDF, and recovery cache behaviour.
 - [ ] Review the privacy/terms copy and moderation workflow before allowing public community posts.
 - [ ] Add Google OAuth values as Netlify server/function secrets: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the exact production `GOOGLE_OAUTH_REDIRECT_URI`; never use `NEXT_PUBLIC_` for the secret.
-- [x] Keep the Netlify configuration limited to the Next.js build command; do not force a static publish directory.
+- [x] Pin the `.next` output and Next.js runtime plugin in `netlify.toml`; verify a healthy deploy uploads server functions instead of publishing a static repository snapshot.
 
 ## Git and secret safety
 
