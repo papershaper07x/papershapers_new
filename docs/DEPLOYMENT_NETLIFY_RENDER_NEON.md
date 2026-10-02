@@ -63,7 +63,7 @@ Render's free filesystem is ephemeral. SQLite, uploaded files and generated pape
 ### 4. Netlify
 
 1. Connect the same GitHub repository only after the Netlify runtime gate passes.
-2. Configure the migrated `frontend/` directory as the project base and use its verified Next.js build settings.
+2. Configure the migrated `frontend/` directory as the project base and use its verified Next.js build settings. `netlify.toml` pins `publish = ".next"` and the `@netlify/plugin-nextjs` runtime; without them Netlify reports a successful deploy but publishes the raw repository, so every route returns 404. A healthy deploy lists server functions in its summary.
 3. Add server-only values: `DATABASE_URL`, `BACKEND_ORIGIN`, `BACKEND_SHARED_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI`.
 4. Give previews separate data and OAuth callbacks. Never give untrusted previews production credentials.
 5. Keep the free-plan hard limit enabled and verify the complete paper lifecycle before production promotion.

@@ -1,2 +1,8 @@
 [build]
   command = "npm run build"
+  publish = ".next"
+
+# Runs the Next.js server pages, API routes and middleware as Netlify Functions.
+# Without it the raw repository is published and every route returns 404.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
