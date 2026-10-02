@@ -1,5 +1,5 @@
 {
-  "name": "site-creator-vinext-starter",
+  "name": "papershapers",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -13,11 +13,9 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "backend:test": "python -m unittest discover -s backend/tests -v",
     "check": "npm run lint && npm test && npm run backend:test",
-    "db:generate": "drizzle-kit generate",
     "db:migrate:postgres": "node scripts/migrate-postgres.mjs"
   },
   "dependencies": {
-    "drizzle-orm": "0.45.2",
     "katex": "^0.18.9",
     "next": "16.2.6",
     "postgres": "^3.4.7",
@@ -28,23 +26,15 @@
     "remark-math": "^6.0.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.37.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.2",
-    "@vitejs/plugin-rsc": "0.5.26",
-    "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
-    "react-server-dom-webpack": "19.2.6",
     "tailwindcss": "4.2.1",
     "tsx": "^4.23.15",
-    "typescript": "5.9.3",
-    "vinext": "0.0.50",
-    "vite": "8.0.13",
-    "wrangler": "4.92.0"
+    "typescript": "5.9.3"
   },
   "type": "module"
 }

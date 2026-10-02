@@ -23,11 +23,11 @@ test("live room files, question input, and route components exist and have valid
     assert.ok(content.length > 50, `${file} should have meaningful content`);
   }
 
-  const schema = await readFile(new URL("db/schema.ts", root), "utf8");
-  assert.match(schema, /testRooms = sqliteTable\("test_rooms"/);
-  assert.match(schema, /testAttendees = sqliteTable\("test_attendees"/);
-  assert.match(schema, /userRoles = sqliteTable\("user_roles"/);
-  assert.match(schema, /aiEvaluation: text\("ai_evaluation"\)/);
+  const schema = await readFile(new URL("database/migrations/0001_initial.sql", root), "utf8");
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS test_rooms/);
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS test_attendees/);
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS user_roles/);
+  assert.match(schema, /ai_evaluation TEXT/);
 
   const service = await readFile(new URL("db/service.ts", root), "utf8");
   assert.match(service, /createTestRoom/);

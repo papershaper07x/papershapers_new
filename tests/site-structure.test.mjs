@@ -40,18 +40,16 @@ test("account and dashboard routes exist for every portal", async () => {
   }
 });
 
-test("worker maps product subdomains without redirects", async () => {
-  const worker = await readFile(new URL("worker/index.ts", root), "utf8");
-  assert.match(worker, /learn: "\/papershapers"/);
-  assert.match(worker, /news: "\/perspective"/);
-  assert.match(worker, /nearby: "\/noticeboard"/);
-  assert.match(worker, /new Request\(url, request\)/);
+test("Netlify uses the standard Next.js build without a static publish override", async () => {
+  const config = await readFile(new URL("netlify.toml", root), "utf8");
+  assert.match(config, /command = "npm run build"/);
+  assert.doesNotMatch(config, /publish\s*=/);
 });
 
 test("database schema covers identity and portal state", async () => {
-  const schema = await readFile(new URL("db/schema.ts", root), "utf8");
+  const schema = await readFile(new URL("database/migrations/0001_initial.sql", root), "utf8");
   for (const table of ["users", "sessions", "auth_identities", "study_requests", "user_preferences", "saved_items"]) {
-    assert.match(schema, new RegExp(`\\"${table}\\"`));
+    assert.match(schema, new RegExp(`CREATE TABLE IF NOT EXISTS ${table}`));
   }
 });
 
@@ -105,7 +103,7 @@ test("Study retains a linked, paginated paper archive", async () => {
     readFile(new URL("app/papershapers/papers/page.tsx", root), "utf8"),
     readFile(new URL("app/papershapers/dashboard/page.tsx", root), "utf8"),
     readFile(new URL("app/api/study/papers/route.ts", root), "utf8"),
-    readFile(new URL("db/schema.ts", root), "utf8"),
+    readFile(new URL("database/migrations/0001_initial.sql", root), "utf8"),
   ]);
   assert.match(archive, /PaperArchive/);
   assert.match(dashboard, /paper_id/);
@@ -140,7 +138,7 @@ test("Study Journal separates moderated submissions from public reading", async 
     "app/papershapers/journal/[slug]/page.tsx",
     "app/api/community/posts/route.ts",
   ]) await readFile(new URL(file, root));
-  const schema = await readFile(new URL("db/schema.ts", root), "utf8");
+  const schema = await readFile(new URL("database/migrations/0001_initial.sql", root), "utf8");
   const service = await readFile(new URL("db/service.ts", root), "utf8");
   assert.match(schema, /community_posts/);
   assert.match(service, /status = 'published'/);
@@ -155,7 +153,7 @@ test("Study includes teacher live room hosting and student test attempt flow", a
     "app/papershapers/room/[roomId]/page.tsx",
     "app/papershapers/room/[roomId]/live-room-attempt.tsx",
   ]) await readFile(new URL(file, root));
-  const schema = await readFile(new URL("db/schema.ts", root), "utf8");
+  const schema = await readFile(new URL("database/migrations/0001_initial.sql", root), "utf8");
   const service = await readFile(new URL("db/service.ts", root), "utf8");
   assert.match(schema, /test_rooms/);
   assert.match(schema, /test_attendees/);
