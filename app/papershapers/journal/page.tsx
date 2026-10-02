@@ -6,7 +6,7 @@ import { StudyInformationLayout } from "../information-layout";
 
 export const metadata: Metadata = {
   title: "Journal and community notes",
-  description: "Paper Shapers study notes, walkthroughs, and moderated student community posts for CBSE Classes 9–12.",
+  description: "Paper Shapers study notes, walkthroughs, and moderated student community posts for CBSE Classes 1–12.",
 };
 
 function dateLabel(value: string | null) {

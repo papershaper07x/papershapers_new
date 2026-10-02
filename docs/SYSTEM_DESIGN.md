@@ -129,7 +129,7 @@ The Study router uses an explicitly configured ordered sequence of Gemini, Groq,
 ### Study paper lifecycle (current prototype)
 
 1. A signed-in learner creates a half or full paper from the Study landing route.
-   The dedicated planner reads the supplied local Paper Shapers chapter-content source and validates the selected Class 9–12 subject and chapters against it.
+   The dedicated planner reads the supplied local Paper Shapers chapter-content source and validates the selected Class 1–12 subject and chapters against it.
 2. The backend saves an owner-scoped structured paper and the browser navigates to a dedicated reader route.
 3. The learner opens a distraction-free attempt route and submits responses.
 4. The backend stores an owner-scoped attempt and returns formative per-question feedback, including the source question and submitted answer alongside marks and the answer outline.
@@ -148,7 +148,7 @@ Password accounts remain supported. When `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECR
 ### NCERT & CBSE Textbook Scraper and Tabular Curriculum Pipeline
 
 To ensure curriculum data remains synchronized with authentic NCERT textbook editions without fragile manual CSV entry:
-1. **Official Source Scraper:** A Python pipeline (`scripts/ncert_curriculum_scraper.py`) scrapes the official NCERT portal (`https://ncert.nic.in/textbook.php`), discovering over 1,100 books across Classes 1–12, focusing on CBSE Classes 9–12. It supports both high-speed headless HTTP parsing and interactive Selenium WebDriver automation.
+1. **Official Source Scraper:** A Python pipeline (`scripts/ncert_curriculum_scraper.py`) scrapes the official NCERT portal (`https://ncert.nic.in/textbook.php`), discovering over 1,100 books across Classes 1–12, focusing on CBSE Classes 1–12. It supports both high-speed headless HTTP parsing and interactive Selenium WebDriver automation.
 2. **Automated Chapter PDF Ingestion:** Resolves chapter PDF URLs, downloads and caches textbook PDFs locally under `data/ncert_pdfs/{class}/{subject}/`, and extracts clean academic text using PyMuPDF (`fitz`), stripping publisher boilerplate.
 3. **Modern Tabular Architecture:**
    - **SQLite Database Store (`data/curriculum_store.sqlite`):** Stores structured book metadata and chapter text with indexes on `(grade, subject)` for instant query performance.
@@ -160,7 +160,7 @@ To ensure curriculum data remains synchronized with authentic NCERT textbook edi
 ### Live test rooms (teacher verification, session loop, and AI evaluation)
 
 1. **Teacher Verification Layer:** To prevent unauthorized room creation, hosting live test rooms requires verified educator status stored in `user_roles` (`role = 'teacher'`). Users register their role and institution at signup or can verify through the educator verification gate on the live rooms dashboard.
-2. **Flexible Paper Selection:** Teachers can initialize sessions using any standard CBSE Class 9–12 syllabus option (subject, grade, and full/half size), an existing paper from their saved library, or a custom paper ID. Rooms are registered in `test_rooms` (status: `waiting`).
+2. **Flexible Paper Selection:** Teachers can initialize sessions using any standard CBSE Class 1–12 syllabus option (subject, grade, and full/half size), an existing paper from their saved library, or a custom paper ID. Rooms are registered in `test_rooms` (status: `waiting`).
 3. **Frictionless Student Participation:** Students access `/papershapers/room` or `/papershapers/room/:roomId` and enter their name and roll number without requiring account creation.
 4. **Session Security:** The server validates room availability, assigns an attendee record in `test_attendees` (`joined`), and sets a scoped HTTP-only session cookie (`attendeeId_{roomId}`) to prevent cross-submission tampering.
 5. **Interactive Question Visualization:** Paper questions automatically adapt their rendering based on type: MCQs feature interactive selectable choice tiles with radio indicators; short-answer items render focused text inputs; long-form items render structured response textareas.

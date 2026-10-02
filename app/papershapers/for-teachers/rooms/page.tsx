@@ -98,7 +98,7 @@ export default async function TeacherRoomsPage() {
                 Launch by Class &amp; Subject
               </h2>
               <p className="text-[#f8f5ed]/85 text-sm mb-5 leading-relaxed">
-                Select from all CBSE Classes 9–12 subjects to launch a live room immediately:
+                Select from all CBSE Classes 1–12 subjects to launch a live room immediately:
               </p>
 
               <form action={createRoomAction} className="flex flex-col gap-4">

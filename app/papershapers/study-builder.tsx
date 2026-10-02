@@ -15,7 +15,7 @@ export function StudyBuilder({ authenticated, userName }: { authenticated: boole
           </p>
         </div>
         <div className="builder-panel builder-panel--launch">
-          <p className="planner-overline">CLASSES 9–12 · CBSE BOARD ALIGNED</p>
+          <p className="planner-overline">CLASSES 1–12 · CBSE BOARD ALIGNED</p>
           <h3>Craft your ultimate revision paper.</h3>
           <p>
             Choose from quick 20-min speedruns to 80-mark board simulations. Every paper features authentic MCQs, short answers, and structured long questions.

@@ -1,8 +1,18 @@
 from __future__ import annotations
 
 import hmac
+import logging
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+# Configure logging for standard output (essential for Render visibility)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware

@@ -12,14 +12,14 @@ export const metadata: Metadata = {
 const portals = [
   {
     number: "01",
-    eyebrow: "AI Study Lab · CBSE 9–12",
+    eyebrow: "AI Study Lab · CBSE 1–12",
     title: "Paper Shapers",
     description:
       "Make thoughtful practice papers, turn notes into questions, and shape research into something you can actually use.",
     action: "Enter the AI study lab",
     href: "/papershapers",
     className: "portal-card--study",
-    detail: "Classes 9–12 · Live Rooms · AI Grading",
+    detail: "Classes 1–12 · Live Rooms · AI Grading",
   },
   {
     number: "02",

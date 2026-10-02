@@ -5,7 +5,7 @@ import { StudySupport } from "./study-support";
 import { getCurrentUser } from "../../lib/auth";
 
 export const metadata: Metadata = {
-  title: "Mock Paper Generator & Live Exam Arena for CBSE 9–12 | Paper Shapers",
+  title: "Mock Paper Generator & Live Exam Arena for CBSE 1–12 | Paper Shapers",
   description: "Ace your CBSE board exams with precision mock papers, live classroom battle arenas, and instant rubric evaluations. No cap.",
   alternates: { canonical: "/papershapers" },
   openGraph: { title: "Paper Shapers Study Lab", description: "CBSE board prep: mock papers, live rooms, and instant score breakdowns." },
@@ -30,7 +30,7 @@ export default async function StudyLab() {
 
       <section className="portal-hero page-shell">
         <div>
-          <p className="kicker" style={{ color: "var(--yellow, #efbd55)" }}><span>01</span> STUDY LAB · CBSE 9–12</p>
+          <p className="kicker" style={{ color: "var(--yellow, #efbd55)" }}><span>01</span> STUDY LAB · CBSE 1–12</p>
           <h1>Crush your exams.<br /><em>Next-level prep.</em></h1>
           <p className="hero-lede">
             Zero fluff. Pure exam confidence. Spawn syllabus-targeted practice papers in seconds, squad up in live battle arenas, and get instant feedback with exact marking breakdowns. Straight facts.
@@ -134,11 +134,11 @@ export default async function StudyLab() {
           <span className="curriculum-highlight__badge">Source-aware practice planning</span>
           <h2>Start from a syllabus slice, not a blank chat.</h2>
           <p>
-            The test planner helps Class 9–12 learners choose a supported subject and chapter set before a paper is requested. It uses the installed curriculum catalogue as context, then checks the returned paper structure and marks before showing it. <strong>Every paper remains practice material, not an official CBSE exam or certified marking result.</strong>
+            The test planner helps Class 1–12 learners choose a supported subject and chapter set before a paper is requested. It uses the installed curriculum catalogue as context, then checks the returned paper structure and marks before showing it. <strong>Every paper remains practice material, not an official CBSE exam or certified marking result.</strong>
           </p>
           <div className="curriculum-highlight__grid">
             <div className="curriculum-highlight__card">
-              <strong>Class 9–12</strong>
+              <strong>Class 1–12</strong>
               <span>Planner coverage</span>
             </div>
             <div className="curriculum-highlight__card">
