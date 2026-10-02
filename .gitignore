@@ -56,6 +56,7 @@ next-env.d.ts
 # code. Re-create or install it locally using the documented source workflow.
 /data/ncert_pdfs/
 /data/*.sqlite
+!/data/curriculum_store.sqlite
 /data/*.html
 /data/*.json
 /data/study-source/
