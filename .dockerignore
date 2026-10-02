@@ -11,7 +11,8 @@ news_papershapers
 newspaper
 newspaper2
 papershapers
-data
+data/*
+!data/curriculum_store.sqlite
 backend/.env
 backend/.venv
 backend/data
