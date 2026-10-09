@@ -1,3 +1,9 @@
+export type StudyDiagram = { version: 1; description: string } & (
+  | { kind: "circuit"; layout: "series" | "parallel"; source_label: string; components: Array<{kind: "resistor" | "capacitor"; label: string}> }
+  | { kind: "uniform-field"; direction: "left" | "right"; left_label: string; right_label: string }
+  | { kind: "flow"; nodes: Array<{id: string; label: string}>; edges: Array<{from: string; to: string}> }
+);
+
 export type StudyQuestion = {
   id: string;
   section: string;
@@ -7,6 +13,7 @@ export type StudyQuestion = {
   text: string;
   answer_outline?: string;
   options?: string[];
+  diagram?: StudyDiagram | null;
 };
 
 export type StudyPaper = {
@@ -50,5 +57,5 @@ export type StudyAttempt = {
   summary: string;
   submitted_at: string;
   verification?: { status: string; provider: string; detail: string };
-  breakdown: Array<{ question_id: string; earned_marks: number; available_marks: number; question_text: string; student_answer: string; feedback: string; answer_outline: string }>;
+  breakdown: Array<{ question_id: string; earned_marks: number; available_marks: number; question_text: string; diagram?: StudyDiagram | null; student_answer: string; feedback: string; answer_outline: string }>;
 };

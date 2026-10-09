@@ -50,7 +50,7 @@ export function AttemptResult({ paperId, attemptId }: { paperId: string; attempt
 
               <section className="review-block" style={{ marginBottom: '1.5rem' }}>
                 <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700 }}>Question</span>
-                <div style={{ fontSize: '1.1rem', margin: '0.25rem 0 0', color: '#1f2937' }}><PracticeContent text={item.question_text || "Question details were not stored for this earlier attempt."} /></div>
+                <div style={{ fontSize: '1.1rem', margin: '0.25rem 0 0', color: '#1f2937' }}><PracticeContent text={item.question_text || "Question details were not stored for this earlier attempt."} diagram={item.diagram} /></div>
               </section>
 
               <section className="review-block review-block--response" style={{ marginBottom: '1.5rem', background: '#f9fafb', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #d1d5db' }}>

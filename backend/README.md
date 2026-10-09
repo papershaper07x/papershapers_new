@@ -80,3 +80,6 @@ For Study attempts, model-assisted feedback is accepted only when every generate
 ## Student assessment hardening — 9 October 2026
 
 Production assessment validates question IDs, numeric finite scores and paper mark caps within the provider retry chain. Invalid reviews fail with 503; duplicate or unknown submitted IDs fail with 422. No production completeness-based fallback is saved. Explicit offline mock mode is still test-only. Question text and options accompany assessment context, and responses are treated as untrusted answers. `/version` returns the Render source commit and release label. See `docs/STUDENT_PLATFORM_AUDIT.md` for remaining persistence, job and readiness limits.
+
+## Question diagrams
+Generation accepts bounded version-1 diagram specifications and retries invalid output before persistence. Section normalization, generation cache keys, assessment prompts and review snapshots preserve diagrams. See `docs/QUESTION_CONTENT.md`; existing JSON storage needs no migration.

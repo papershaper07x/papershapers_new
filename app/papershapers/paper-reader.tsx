@@ -4,10 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PaperActions } from "./paper-feedback";
 import type { StudyPaper, StudyPaperRecord } from "./study-types";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
+import { PracticeContent } from "./practice-content";
 
 function sectionLabel(section: string) {
   return section.split(":", 1)[0]?.trim() || "Question";
@@ -23,7 +20,7 @@ function PaperBody({ paper }: { paper: StudyPaper }) {
     {paper.generation_source === "cached-recovery" && <p className="paper-reader__notice">The paper service was temporarily unavailable, so this is a validated paper previously created from the same brief. It is now saved privately in your library.</p>}
     {paper.is_demo && <p className="paper-reader__notice">Practice paper generated as a prototype. Questions and answer outlines need educator review before classroom use.</p>}
     <section className="paper-reader__instructions"><h2>General instructions</h2><ol>{paper.instructions.map((instruction) => <li key={instruction}>{instruction}</li>)}</ol></section>
-    <div className="paper-reader__questions">{paper.questions.map((question, index) => <article key={question.id} className="paper-question"><header className="paper-question__meta"><span className="paper-question__number">Q{index + 1}</span><span className="paper-question__section">{sectionLabel(question.section)}</span><span className="paper-question__type">{questionTypeLabel(question.type)}</span><span className="paper-question__chapter">{question.chapter}</span><strong>{question.marks} mark{question.marks === 1 ? "" : "s"}</strong></header><div className="paper-question__content"><div className="paper-question__text"><ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{question.text}</ReactMarkdown></div></div></article>)}</div>
+    <div className="paper-reader__questions">{paper.questions.map((question, index) => <article key={question.id} className="paper-question"><header className="paper-question__meta"><span className="paper-question__number">Q{index + 1}</span><span className="paper-question__section">{sectionLabel(question.section)}</span><span className="paper-question__type">{questionTypeLabel(question.type)}</span><span className="paper-question__chapter">{question.chapter}</span><strong>{question.marks} mark{question.marks === 1 ? "" : "s"}</strong></header><div className="paper-question__content"><div className="paper-question__text"><PracticeContent text={question.text} diagram={question.diagram} /></div></div></article>)}</div>
   </>;
 }
 

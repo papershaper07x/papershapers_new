@@ -7,6 +7,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from .diagrams import DIAGRAM_GUIDANCE, validate_diagram
 from .database import Database
 from .curriculum import context_for_selection, paper_guidance_for_selection, validate_selection
 from .llm_router import GenerationUnavailableError, LLMRouter
@@ -58,7 +59,7 @@ async def generate_paper(database: Database, router: LLMRouter, request: StudyPa
     context = context_for_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject, request.chapters)
     guidance = paper_guidance_for_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject)
     cache_key = _generation_cache_key(request, router.settings.study_generation_cache_version)
-    prompt = json.dumps({"task": "Create a curriculum-grounded practice paper as JSON using only the supplied local study context. Do not use template text. Use clean, short question IDs (e.g. 'Q1', 'Q2'). For math, chemistry, or physics, you MUST include standard mathematical symbols, formulas, and expressions using standard LaTeX math enclosed in $...$ (inline) or $$...$$ (block) so formulas and integration/differentiation are clearly visible. If a question is an MCQ, include a list of 'options'.", "request": request.model_dump(), "class_label": selected["class_label"], "requested_total_marks": blueprint["total_marks"], "requested_time_minutes": blueprint["time_minutes"], "local_paper_setting_guidance": guidance or "No subject-specific local paper-setting guidance was supplied. Use a balanced assessment layout.", "local_study_context": context, "required_shape": {"title": "string", "board": "string", "grade": "string", "subject": "string", "paper_size": "half|full", "total_marks": "integer", "time_minutes": "integer", "instructions": ["string"], "questions": [{"id": "string", "section": "string", "chapter": "string", "marks": "number", "type": "string", "text": "string", "options": ["string"], "answer_outline": "string"}], "is_demo": False}}, ensure_ascii=False)
+    prompt = json.dumps({"task": "Create a curriculum-grounded practice paper as JSON using only the supplied local study context. Do not use template text. Use clean, short question IDs (e.g. 'Q1', 'Q2'). For math, chemistry, or physics, you MUST include standard mathematical symbols, formulas, and expressions using standard LaTeX math enclosed in $...$ (inline) or $$...$$ (block) so formulas and integration/differentiation are clearly visible. Use \\ce{...} chemistry notation inside math for chemical formulas and reactions. JSON-escape every LaTeX backslash. If a question is an MCQ, include a list of 'options'.", "diagram_guidance": DIAGRAM_GUIDANCE, "request": request.model_dump(), "class_label": selected["class_label"], "requested_total_marks": blueprint["total_marks"], "requested_time_minutes": blueprint["time_minutes"], "local_paper_setting_guidance": guidance or "No subject-specific local paper-setting guidance was supplied. Use a balanced assessment layout.", "local_study_context": context, "required_shape": {"title": "string", "board": "string", "grade": "string", "subject": "string", "paper_size": "half|full", "total_marks": "integer", "time_minutes": "integer", "instructions": ["string"], "questions": [{"id": "string", "section": "string", "chapter": "string", "marks": "number", "type": "string", "text": "string", "options": ["string"], "diagram": "optional supported diagram object", "answer_outline": "string"}], "is_demo": False}}, ensure_ascii=False)
     def normalize_and_validate(candidate: dict[str, Any]) -> dict[str, Any]:
         normalized = _normalise_generated_paper(candidate, request)
         _validate_generated_paper(normalized, blueprint, request)
@@ -79,6 +80,7 @@ def _generation_cache_key(request: StudyPaperRequest, cache_version: str) -> str
     """Fingerprint shared content only; identity and attempts never enter this key."""
     canonical = {
         "version": cache_version,
+        "diagram_schema": 1,
         "board": request.board,
         "grade": request.grade,
         "subject": request.subject,
@@ -141,6 +143,7 @@ def _normalise_generated_paper(value: dict[str, Any], request: StudyPaperRequest
                     "type": str(question.get("type") or question.get("question_type") or "constructed-response"),
                     "text": str(question.get("text") or question.get("question") or question.get("question_text") or ""),
                     "answer_outline": str(question.get("answer_outline") or question.get("answer") or question.get("marking_scheme") or question.get("answer_key") or ""),
+                    "diagram": question.get("diagram"),
                     "options": question.get("options") if isinstance(question.get("options"), list) else None,
                 })
         normalized["questions"] = flattened
@@ -160,6 +163,7 @@ def _validate_generated_paper(value: dict[str, Any], blueprint: dict[str, Any], 
         if not isinstance(question, dict) or not isinstance(question.get("id"), str) or question["id"] in seen:
             raise ValueError("The model response contains invalid or duplicate question IDs")
         seen.add(question["id"])
+        validate_diagram(question.get("diagram"))
         try:
             marks = float(question.get("marks"))
         except (TypeError, ValueError):
@@ -212,7 +216,7 @@ def _fallback_attempt_score(paper: dict[str, Any], request: StudyAttemptRequest)
             earned, feedback = marks, "Practice estimate: your response includes enough working to review. Compare it with the answer outline."
         earned_total += earned
         total_marks += marks
-        breakdown.append({"question_id": question.get("id"), "earned_marks": earned, "available_marks": marks, "question_text": question.get("text", ""), "student_answer": answer, "feedback": feedback, "answer_outline": question.get("answer_outline", "")})
+        breakdown.append({"question_id": question.get("id"), "earned_marks": earned, "available_marks": marks, "question_text": question.get("text", ""), "diagram": question.get("diagram"), "student_answer": answer, "feedback": feedback, "answer_outline": question.get("answer_outline", "")})
     return {
         "earned_marks": earned_total,
         "total_marks": total_marks,
@@ -252,6 +256,7 @@ def _validated_attempt_score(candidate: dict[str, Any], fallback: dict[str, Any]
             "earned_marks": earned,
             "available_marks": allowed,
             "question_text": fallback_row["question_text"],
+            "diagram": fallback_row.get("diagram"),
             "student_answer": fallback_row["student_answer"],
             "feedback": str(row.get("feedback") or "Review this response against the answer outline with your teacher.")[:1200],
             "answer_outline": fallback_row["answer_outline"],
@@ -278,7 +283,7 @@ async def submit_attempt(database: Database, router: LLMRouter, paper_id: str, r
     if len(answer_ids) != len(set(answer_ids)) or not set(answer_ids).issubset(known_ids):
         raise ValueError("Responses contain duplicate or unknown question IDs")
     fallback = _fallback_attempt_score(paper, request)
-    prompt = json.dumps({"task": "Provide formative practice feedback for this paper attempt. Do not claim an official score. Return JSON only.", "paper": {"title": paper.get("title"), "questions": [{"id": q.get("id"), "text": q.get("text"), "options": q.get("options"), "marks": q.get("marks"), "answer_outline": q.get("answer_outline")} for q in paper.get("questions", [])]}, "answers": [answer.model_dump() for answer in request.answers], "required_shape": {"earned_marks": "number", "total_marks": "number", "percentage": "number", "breakdown": [{"question_id": "string", "earned_marks": "number", "available_marks": "number", "feedback": "string", "answer_outline": "string"}], "summary": "string", "is_demo": True}}, ensure_ascii=False)
+    prompt = json.dumps({"task": "Provide formative practice feedback for this paper attempt. Do not claim an official score. Return JSON only.", "paper": {"title": paper.get("title"), "questions": [{"id": q.get("id"), "text": q.get("text"), "options": q.get("options"), "diagram": q.get("diagram"), "marks": q.get("marks"), "answer_outline": q.get("answer_outline")} for q in paper.get("questions", [])]}, "answers": [answer.model_dump() for answer in request.answers], "required_shape": {"earned_marks": "number", "total_marks": "number", "percentage": "number", "breakdown": [{"question_id": "string", "earned_marks": "number", "available_marks": "number", "feedback": "string", "answer_outline": "string"}], "summary": "string", "is_demo": True}}, ensure_ascii=False)
     def validate_review(candidate: dict[str, Any]) -> dict[str, Any]:
         checked = _validated_attempt_score(candidate, fallback, paper, "model")
         if checked["verification"]["status"] != "validated":

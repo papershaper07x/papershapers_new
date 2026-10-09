@@ -894,3 +894,11 @@
 .question-navigator a.is-answered { background: #101d38; color: white; }
 
 .attempt-question > div:not(.attempt-question__meta) { display: block; text-transform: none; letter-spacing: normal; font-weight: 400; color: #101d38; font-size: 1rem; }
+
+/* Scientific diagrams share one rendering path across papers and attempts. */
+.question-diagram { display: block; overflow-x: auto; margin: 1rem 0; color: #101d38; text-transform: none; letter-spacing: normal; }
+.question-diagram svg { display: block; min-width: 560px; width: 100%; max-width: 640px; height: auto; margin: auto; background: white; }
+.question-diagram svg text { font: 14px system-ui, sans-serif; }
+.question-diagram figcaption { font: 0.9rem/1.5 system-ui, sans-serif; margin-top: 0.5rem; }
+.practice-content .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.25rem 0; }
+@media print { .question-diagram { break-inside: avoid; color: black; } .question-diagram svg { min-width: 0; } }

@@ -61,7 +61,7 @@ export function QuestionInput({
       </div>
 
       <div style={{ fontSize: "1.15rem", lineHeight: "1.5", margin: "0 0 1.25rem", color: "#101d38", fontFamily: "Georgia, serif" }}>
-        <PracticeContent text={promptText} />
+        <PracticeContent text={promptText} diagram={question.diagram} />
       </div>
 
       {isMcq && options.length > 0 ? (

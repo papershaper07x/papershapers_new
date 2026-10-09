@@ -1,4 +1,7 @@
 "use client";
+import { PracticeContent } from "../../../practice-content";
+import type { TestAttendee } from "../../../../../db/service";
+import type { StudyDiagram } from "../../../study-types";
 
 import { useState, useTransition } from "react";
 import { evaluateAttendeeAction } from "../actions";
@@ -8,6 +11,7 @@ interface AiBreakdownItem {
   earned_marks: number;
   available_marks: number;
   question_text?: string;
+  diagram?: StudyDiagram | null;
   student_answer: string;
   feedback: string;
   answer_outline?: string;
@@ -26,7 +30,7 @@ export function AttendeeCard({
   student,
 }: {
   roomId: string;
-  student: any;
+  student: TestAttendee;
 }) {
   const [isPending, startTransition] = useTransition();
   const [assessmentError, setAssessmentError] = useState("");
@@ -133,9 +137,9 @@ export function AttendeeCard({
                     </div>
 
                     {item.question_text && (
-                      <p className="text-sm font-semibold text-gray-700 my-2">
-                        {item.question_text}
-                      </p>
+                      <div className="text-sm font-semibold text-gray-700 my-2">
+                        <PracticeContent text={item.question_text} diagram={item.diagram} />
+                      </div>
                     )}
 
                     <div className="mt-2 text-sm">
@@ -152,7 +156,7 @@ export function AttendeeCard({
                     {item.answer_outline && (
                       <div className="mt-2 text-sm">
                         <span className="font-bold text-gray-600">Answer Outline / Scheme:</span>
-                        <p className="m-0 mt-1 text-gray-600">{item.answer_outline}</p>
+                        <PracticeContent text={item.answer_outline} />
                       </div>
                     )}
 

@@ -149,3 +149,7 @@ Meaningful repository changes are recorded here so the implementation, product n
 - Repair curriculum URLs/source boundary; add sitemap/robots, error/404/focus navigation, shared request budgets and deployed revision endpoints. Disable analytics recording pending consent work.
 - Document the production audit, platform comparison, remaining launch gates and deployment checks.
 - Upgrade Next.js/ESLint config to 16.4.0 and apply compatible dependency patches; use the existing patched KaTeX version throughout the math dependency tree. Production dependency audit has zero reported findings.
+
+### Scientific question content
+- Added validated structured circuit, uniform-field and flow diagrams across question reading, attempts, Live Rooms, review and printing; enabled chemical equation notation using existing KaTeX.
+- Preserved diagram data through normalization, caching and assessment; added notation and diagram contract regressions.
