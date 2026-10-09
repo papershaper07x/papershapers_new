@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { PracticeContent } from "./practice-content";
 import type { StudyQuestion } from "./study-types";
 
 export function parseQuestionOptions(question: StudyQuestion): { promptText: string; options: string[] } {
@@ -46,8 +47,8 @@ export function QuestionInput({
   const [showNotes, setShowNotes] = useState(false);
 
   return (
-    <article className="attempt-question" style={{ border: "1px solid #d4cbb8", borderRadius: "8px", padding: "1.5rem", background: "#ffffff", marginBottom: "1.5rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", borderBottom: "1px solid #eee", paddingBottom: "0.5rem" }}>
+    <article id={`question-${question.id}`} className="attempt-question" style={{ border: "1px solid #d4cbb8", borderRadius: "8px", padding: "1.5rem", background: "#ffffff", marginBottom: "1.5rem" }}>
+      <div className="attempt-question__meta" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", borderBottom: "1px solid #eee", paddingBottom: "0.5rem" }}>
         <span style={{ fontFamily: "monospace", fontSize: "0.85rem", fontWeight: 700, color: "#9a6610" }}>
           {question.id} {question.chapter ? `· ${question.chapter}` : ""}
           <span style={{ marginLeft: "0.5rem", padding: "0.15rem 0.4rem", borderRadius: "3px", background: "#f0ece1", fontSize: "0.75rem" }}>
@@ -59,9 +60,9 @@ export function QuestionInput({
         </b>
       </div>
 
-      <h2 style={{ fontSize: "1.15rem", lineHeight: "1.5", margin: "0 0 1.25rem", color: "#101d38", fontFamily: "Georgia, serif" }}>
-        {promptText}
-      </h2>
+      <div style={{ fontSize: "1.15rem", lineHeight: "1.5", margin: "0 0 1.25rem", color: "#101d38", fontFamily: "Georgia, serif" }}>
+        <PracticeContent text={promptText} />
+      </div>
 
       {isMcq && options.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
@@ -70,8 +71,7 @@ export function QuestionInput({
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "0.6rem" }}>
             {options.map((opt, idx) => {
-              const optLabel = opt.slice(0, 4); // e.g. "(A)"
-              const isSelected = value.startsWith(optLabel) || value.trim() === opt.trim();
+              const isSelected = value.split("\nNotes: ")[0].trim() === opt.trim();
               return (
                 <label
                   key={idx}
@@ -96,8 +96,8 @@ export function QuestionInput({
                     onChange={() => onChange(opt)}
                     style={{ width: "18px", height: "18px", accentColor: "#101d38", cursor: "pointer" }}
                   />
-                  <span style={{ fontSize: "0.95rem", color: "#101d38" }}>{opt}</span>
-                  {isSelected && <span style={{ marginLeft: "auto", color: "#065f46", fontWeight: 800 }}>✓ Selected</span>}
+                  <div style={{ fontSize: "0.95rem", color: "#101d38" }}><PracticeContent text={opt} /></div>
+                  {isSelected && <span aria-hidden="true" style={{ marginLeft: "auto", color: "#065f46", fontWeight: 800 }}>✓ Selected</span>}
                 </label>
               );
             })}
@@ -140,6 +140,7 @@ export function QuestionInput({
           <input
             id={`input-${question.id}`}
             type="text"
+            maxLength={8000}
             value={value}
             placeholder="Type your final answer..."
             onChange={(e) => onChange(e.target.value)}
@@ -156,6 +157,7 @@ export function QuestionInput({
             value={value}
             placeholder="State key concepts, definitions, steps, calculations, and conclusions clearly."
             onChange={(e) => onChange(e.target.value)}
+            maxLength={8000}
             rows={question.marks >= 4 ? 7 : 4}
             style={{ width: "100%", padding: "0.75rem 1rem", border: "1px solid #d4cbb8", borderRadius: "5px", fontSize: "0.95rem", lineHeight: "1.5", background: "#ffffff" }}
           />

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { PracticeContent } from "./practice-content";
 import type { StudyAttempt } from "./study-types";
 
 export function AttemptResult({ paperId, attemptId }: { paperId: string; attemptId: string }) {
@@ -9,24 +10,24 @@ export function AttemptResult({ paperId, attemptId }: { paperId: string; attempt
   const [error, setError] = useState("");
   useEffect(() => { fetch(`/api/study/papers/${paperId}/attempts/${attemptId}`).then(async (response) => { const result = await response.json() as { attempt?: { score?: StudyAttempt }; error?: string }; if (!response.ok || !result.attempt?.score) throw new Error(result.error ?? "Attempt not found."); setAttempt(result.attempt.score); }).catch((reason: Error) => setError(reason.message)); }, [paperId, attemptId]);
   if (error) return <main className="study-route page-shell"><p className="form-error">{error}</p><Link href="/papershapers/dashboard">Return to your study desk →</Link></main>;
-  if (!attempt) return <main className="study-route page-shell"><p className="route-loading">Vibe checking your work…</p></main>;
+  if (!attempt) return <main className="study-route page-shell"><p className="route-loading">Loading your practice feedback…</p></main>;
 
   return (
     <main className="study-route">
       <section className="result-hero page-shell" style={{ padding: '3rem 0', textAlign: 'center', background: '#f8f5ed', borderRadius: '12px', marginBottom: '2rem' }}>
-        <p style={{ color: '#854d0e', fontWeight: 600, letterSpacing: '0.05em' }}>VIBE CHECK · {attempt.provider}</p>
+        <p style={{ color: '#854d0e', fontWeight: 600, letterSpacing: '0.05em' }}>FORMATIVE REVIEW · {attempt.provider}</p>
         <h1 style={{ fontSize: '4rem', margin: '0.5rem 0', color: '#101d38' }}>{attempt.percentage}%</h1>
-        <strong style={{ fontSize: '1.25rem', color: '#374151', display: 'block', marginBottom: '1rem' }}>{attempt.earned_marks} / {attempt.total_marks} marks secured</strong>
+        <strong style={{ fontSize: '1.25rem', color: '#374151', display: 'block', marginBottom: '1rem' }}>{attempt.earned_marks} / {attempt.total_marks} practice marks</strong>
         <p style={{ maxWidth: '600px', margin: '0 auto 1.5rem', fontSize: '1.1rem', color: '#4b5563' }}>{attempt.summary}</p>
 
         {attempt.verification && (
           <aside className="verification-note" style={{ background: '#e0f2fe', color: '#0369a1', padding: '1rem', borderRadius: '8px', display: 'inline-block', marginBottom: '2rem' }}>
-            <strong>{attempt.verification.status === "validated" ? "Model verified" : "Local rubric used"}</strong>
+            <strong>{attempt.verification.status === "validated" ? "Model response structure checked" : "Local rubric used"}</strong>
             <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>{attempt.verification.detail}</p>
           </aside>
         )}
 
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center' }}>
           <Link className="button button--accent" href={`/papershapers/papers/${paperId}/attempt`}>Try again</Link>
           <Link className="button button--dark" href="/papershapers/dashboard">Back to study desk</Link>
         </div>
@@ -34,9 +35,9 @@ export function AttemptResult({ paperId, attemptId }: { paperId: string; attempt
 
       <section className="result-breakdown page-shell">
         <div className="result-breakdown__heading" style={{ marginBottom: '2rem', textAlign: 'center' }}>
-          <p className="kicker">The receipts</p>
+          <p className="kicker">Review your work</p>
           <h2>Question-by-question breakdown</h2>
-          <p>See exactly where you cooked and where you fumbled.</p>
+          <p>Compare your responses with the feedback and answer outlines. AI feedback can be incorrect; ask a teacher about uncertain results.</p>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -49,7 +50,7 @@ export function AttemptResult({ paperId, attemptId }: { paperId: string; attempt
 
               <section className="review-block" style={{ marginBottom: '1.5rem' }}>
                 <span style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: '#6b7280', fontWeight: 700 }}>Question</span>
-                <h3 style={{ fontSize: '1.1rem', margin: '0.25rem 0 0', color: '#1f2937' }}>{item.question_text || "Question details were not stored for this earlier attempt."}</h3>
+                <div style={{ fontSize: '1.1rem', margin: '0.25rem 0 0', color: '#1f2937' }}><PracticeContent text={item.question_text || "Question details were not stored for this earlier attempt."} /></div>
               </section>
 
               <section className="review-block review-block--response" style={{ marginBottom: '1.5rem', background: '#f9fafb', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #d1d5db' }}>
@@ -64,7 +65,7 @@ export function AttemptResult({ paperId, attemptId }: { paperId: string; attempt
 
               <details className="review-outline" style={{ background: '#fef3c7', padding: '1rem', borderRadius: '8px', color: '#92400e' }}>
                 <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Open correct answer outline</summary>
-                <p style={{ marginTop: '0.5rem', borderTop: '1px solid #fde68a', paddingTop: '0.5rem' }}>{item.answer_outline}</p>
+                <div style={{ marginTop: '0.5rem', borderTop: '1px solid #fde68a', paddingTop: '0.5rem' }}><PracticeContent text={item.answer_outline} /></div>
               </details>
             </article>
           ))}

@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { SITE_ORIGIN } from "../lib/site";
 import { inter, sourceSerif, jetbrainsMono } from "./fonts";
 import "./globals.css";
 import "./portal-ui.css";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "papershapers.in";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
-  const origin = `${protocol}://${host}`;
+  const origin = SITE_ORIGIN;
 
   return {
     metadataBase: new URL(origin),
@@ -31,7 +28,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-import Script from "next/script";
 
 export default function RootLayout({
   children,
@@ -41,18 +37,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${sourceSerif.variable} ${jetbrainsMono.variable}`}>
       <body>
-        {children}
-        {process.env.NEXT_PUBLIC_CLARITY_ID && (
-          <Script id="microsoft-clarity" strategy="afterInteractive">
-            {`
-              (function(c,l,a,r,i,t,y){
-                  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-              })(window, document, "clarity", "script", "${process.env.NEXT_PUBLIC_CLARITY_ID}");
-            `}
-          </Script>
-        )}
+        <a className="skip-link" href="#main-content">Skip to content</a>
+        <div id="main-content" tabIndex={-1}>{children}</div>
+
       </body>
     </html>
   );

@@ -189,3 +189,7 @@ Rotate any credential ever pasted into chat, a screenshot, a log, or a committed
 - Keep deployment reversible: free tiers can sleep or pause, and a health pinger is optional and must respect provider terms.
 
 Useful references: [RUNBOOK.md](RUNBOOK.md), [launch readiness](docs/LAUNCH_READINESS.md), [system design](docs/SYSTEM_DESIGN.md), [Netlify/Render/Neon deployment](docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md), [database README](database/README.md), [backend README](backend/README.md), and portal READMEs under `app/`.
+
+## Student hardening release — 9 October 2026
+
+See [the student production audit](docs/STUDENT_PLATFORM_AUDIT.md) for confirmed bugs, shipped fixes, competitor references, remaining launch gates, and deployment verification. Frontend `/api/release` and backend `/version` expose the deployed source commit. When `REQUEST_LIMITS_ENABLED=true`, Netlify prebuild applies the additive `0005_request_limits.sql`; set `MIGRATION_DATABASE_URL` if the runtime role cannot create tables or grant access. Limits default off until the migration and grants are installed; enable them before unrestricted public traffic. Optional Clarity recording is disabled pending consent/privacy work.

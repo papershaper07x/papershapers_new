@@ -15,7 +15,7 @@ const portals = [
     eyebrow: "AI Study Lab · CBSE 1–12",
     title: "Paper Shapers",
     description:
-      "Make thoughtful practice papers, turn notes into questions, and shape research into something you can actually use.",
+      "Create chapter-based practice papers, attempt them online, and review formative feedback. Teachers can host Live Rooms.",
     action: "Enter the AI study lab",
     href: "/papershapers",
     className: "portal-card--study",

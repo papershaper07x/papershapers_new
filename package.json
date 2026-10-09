@@ -9,15 +9,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "npm run build && node --test tests/site-structure.test.mjs tests/live-rooms.test.mjs",
+    "test": "npm run build && node --import tsx --test tests/site-structure.test.mjs tests/live-rooms.test.mjs tests/attempt-draft.test.ts",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "backend:test": "python -m unittest discover -s backend/tests -v",
     "check": "npm run lint && npm test && npm run backend:test",
-    "db:migrate:postgres": "node scripts/migrate-postgres.mjs"
+    "db:migrate:postgres": "node scripts/migrate-postgres.mjs",
+    "prebuild": "node scripts/prepare-hosted-build.mjs"
   },
   "dependencies": {
     "katex": "^0.18.9",
-    "next": "16.2.6",
+    "next": "^16.4.0",
     "postgres": "^3.4.7",
     "react": "19.2.6",
     "react-dom": "19.2.6",
@@ -31,10 +32,13 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "^16.4.0",
     "tailwindcss": "4.2.1",
     "tsx": "^4.23.15",
     "typescript": "5.9.3"
   },
-  "type": "module"
+  "type": "module",
+  "overrides": {
+    "katex": "$katex"
+  }
 }

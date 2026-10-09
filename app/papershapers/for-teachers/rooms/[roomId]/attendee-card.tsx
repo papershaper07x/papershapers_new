@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { evaluateAttendeeAction } from "../actions";
 
 interface AiBreakdownItem {
@@ -29,6 +29,7 @@ export function AttendeeCard({
   student: any;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [assessmentError, setAssessmentError] = useState("");
 
   let parsedOptions: Record<string, string> = {};
   try {
@@ -82,8 +83,10 @@ export function AttendeeCard({
         {student.status === "completed" && (
           <button
             onClick={() => {
-              startTransition(() => {
-                evaluateAttendeeAction(roomId, student.id);
+              startTransition(async () => {
+                setAssessmentError("");
+                try { await evaluateAttendeeAction(roomId, student.id); }
+                catch (error) { setAssessmentError(error instanceof Error ? error.message : "Assessment unavailable. Responses are saved."); }
               });
             }}
             disabled={isPending}
@@ -94,6 +97,7 @@ export function AttendeeCard({
         )}
       </div>
 
+      {assessmentError && <p className="form-error" role="alert">{assessmentError}</p>}
       {/* Card Content Area */}
       <div className="mt-4">
         {/* State 1: Evaluated by AI */}

@@ -1,11 +1,14 @@
+import { withinRequestLimit, rateLimitResponse } from "../../../../lib/request-limit";
 import { createSessionRecord, findUserByEmail } from "../../../../db/service";
 import { randomToken, sessionCookie, sha256, verifyPassword } from "../../../../lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as { email?: string; password?: string };
+    const body = await request.json().catch(() => null) as { email?: string; password?: string };
+    if (!body || typeof body.email !== "string" || typeof body.password !== "string" || body.password.length > 256) return Response.json({ error: "Enter valid account details. Passwords may contain up to 256 characters." }, { status: 400 });
     const email = body.email?.trim().toLowerCase().slice(0, 180) ?? "";
     const password = body.password ?? "";
+    if (!await withinRequestLimit("auth-login", email, 10, 900)) return rateLimitResponse(900);
     const found = await findUserByEmail(email);
     if (!found || !(await verifyPassword(password, found.password_salt, found.password_hash))) {
       return Response.json({ error: "Email or password is incorrect." }, { status: 401 });

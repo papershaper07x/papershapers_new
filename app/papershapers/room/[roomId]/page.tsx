@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { getTestRoom, getTestAttendees } from "../../../../db/service";
-import { joinRoomAction } from "./actions";
+import { JoinRoomForm } from "./join-room-form";
 import { backendFetch } from "../../../../lib/backend";
 import { getCurrentUser } from "../../../../lib/auth";
 import { SiteHeader, SiteFooter } from "../../../components/SiteChrome";
@@ -78,59 +78,16 @@ export default async function RoomPage({ params }: { params: Promise<{ roomId: s
             <p style={{ marginBottom: "2rem", color: "#4b5563", lineHeight: 1.5 }}>
               Enter your full name and assigned roll number to access the questions.
             </p>
-            <form
-              action={async (formData) => {
-                "use server";
-                await joinRoomAction(roomId, formData);
-              }}
-              style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
-            >
-              <div>
-                <label htmlFor="student-name" style={{ display: "block", marginBottom: "0.4rem", fontWeight: 700 }}>
-                  Your Full Name
-                </label>
-                <input
-                  id="student-name"
-                  type="text"
-                  name="name"
-                  placeholder="e.g. Priya Sharma"
-                  required
-                  style={{ width: "100%", padding: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "1rem" }}
-                />
-              </div>
-              <div>
-                <label htmlFor="student-roll" style={{ display: "block", marginBottom: "0.4rem", fontWeight: 700 }}>
-                  Roll Number / Student ID
-                </label>
-                <input
-                  id="student-roll"
-                  type="text"
-                  name="rollNumber"
-                  placeholder="e.g. 1014"
-                  required
-                  style={{ width: "100%", padding: "0.85rem", border: "1px solid #cbd5e1", borderRadius: "4px", fontSize: "1rem" }}
-                />
-              </div>
-              <button
-                type="submit"
-                className="button button--accent"
-                style={{
-                  marginTop: "0.5rem",
-                  backgroundColor: "#c9ff47",
-                  color: "#111827",
-                  fontWeight: 900,
-                  border: "2px solid #111827",
-                  boxShadow: "4px 4px 0 #111827",
-                }}
-              >
-                Join Test Room →
-              </button>
-            </form>
+            <JoinRoomForm roomId={roomId} />
           </div>
         </div>
         <SiteFooter portal="study" />
       </main>
     );
+  }
+
+  if (room.status === "completed" && attendee.status !== "completed") {
+    return <main className="study-route page-shell"><h1>This session has ended</h1><p>Your teacher has closed submissions. Any browser draft remains on this device.</p><Link href="/papershapers">Return to Study</Link></main>;
   }
 
   if (room.status === "waiting") {
@@ -209,7 +166,7 @@ export default async function RoomPage({ params }: { params: Promise<{ roomId: s
   return (
     <main className="portal-page study-page">
       <SiteHeader portal="study" user={user} />
-      <LiveRoomAttempt roomId={roomId} attendeeId={attendee.id} paper={paper} />
+      <LiveRoomAttempt roomId={roomId} attendeeId={attendee.id} paper={{ ...paper, questions: paper.questions.map(({ answer_outline: _outline, ...question }) => question) }} />
       <SiteFooter portal="study" />
     </main>
   );

@@ -274,10 +274,11 @@ export async function getTestAttendees(roomId: string) {
   }
 }
 
-export async function submitTestAttempt(attendeeId: string, optionsFilled: Record<string, string>, score: number | null) {
+export async function submitTestAttempt(attendeeId: string, roomId: string, optionsFilled: Record<string, string>, score: number | null) {
   const db = await ensureDatabase();
-  await db.prepare("UPDATE test_attendees SET status = 'completed', options_filled = ?, score = ? WHERE id = ?")
-    .bind(JSON.stringify(optionsFilled), score, attendeeId).run();
+  const result = await db.prepare("UPDATE test_attendees SET status = 'completed', options_filled = ?, score = ? WHERE id = ? AND room_id = ? AND status = 'joined' AND EXISTS (SELECT 1 FROM test_rooms WHERE id = ? AND status = 'active') RETURNING id")
+    .bind(JSON.stringify(optionsFilled), score, attendeeId, roomId, roomId).first<{ id: string }>();
+  return Boolean(result);
 }
 
 export async function updateAttendeeAiEvaluation(attendeeId: string, score: number, aiEvaluationJson: string) {
@@ -300,7 +301,7 @@ export async function getUserRole(userId: string): Promise<UserRoleProfile> {
   };
 }
 
-export async function setUserRole(userId: string, role: "student" | "teacher", institution = "", verified = true) {
+export async function setUserRole(userId: string, role: "student" | "teacher", institution = "", verified = false) {
   const db = await ensureDatabase();
   const now = new Date().toISOString();
   await db.prepare(`INSERT INTO user_roles (user_id, role, institution, verified, updated_at)

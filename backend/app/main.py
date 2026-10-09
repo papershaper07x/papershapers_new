@@ -45,6 +45,12 @@ app = FastAPI(title="Paper Shapers local backend", version="0.1.0", lifespan=lif
 app.add_middleware(CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_credentials=False, allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Backend-Secret"])
 
 
+@app.get("/version")
+def version() -> dict:
+    import os
+    return {"service": "backend", "commit": os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "local", "release": "2026-10-09-student-hardening"}
+
+
 def require_write_access(x_backend_secret: str | None = Header(default=None)) -> None:
     if not settings.shared_secret:
         raise HTTPException(
@@ -59,7 +65,11 @@ def require_write_access(x_backend_secret: str | None = Header(default=None)) ->
 async def health() -> dict:
     database.initialize()
     providers = await router.provider_status()
-    return {"status": "ok", "database": database.engine, "providers": providers, "study_generation": {"mode": "mock-enabled" if settings.allow_mock_fallback else "real-model-required", "curriculum_source": "configured" if settings.study_curriculum_csv_path.exists() else "missing"}}
+    try:
+        curriculum_available = bool(catalog(settings.study_curriculum_csv_path)["classes"])
+    except (FileNotFoundError, ValueError):
+        curriculum_available = False
+    return {"status": "ok", "database": database.engine, "providers": providers, "study_generation": {"mode": "mock-enabled" if settings.allow_mock_fallback else "real-model-required", "curriculum_source": "configured" if curriculum_available else "missing"}}
 
 
 @app.get("/v1/study/catalog")
@@ -96,7 +106,12 @@ def study_paper(paper_id: str, user_id: str = Query(min_length=1, max_length=100
 
 @app.post("/v1/study/papers/{paper_id}/attempts", dependencies=[Depends(require_write_access)])
 async def study_attempt(paper_id: str, request: StudyAttemptRequest) -> dict:
-    attempt = await submit_attempt(database, router, paper_id, request)
+    try:
+        attempt = await submit_attempt(database, router, paper_id, request)
+    except GenerationUnavailableError as error:
+        raise HTTPException(status_code=503, detail="Assessment is temporarily unavailable. Your draft can be submitted again later.") from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     if attempt is None:
         raise HTTPException(status_code=404, detail="Paper not found")
     return {"attempt": attempt}

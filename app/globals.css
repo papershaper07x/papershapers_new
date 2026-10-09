@@ -857,3 +857,40 @@
   *, *::before, *::after { transition-duration: .01ms !important; }
   .portal-card:hover, .button:hover, .notice-card:hover { transform: none !important; box-shadow: none !important; }
 }
+
+/* Student production audit: navigable curriculum and resilient attempt layouts. */
+.skip-link { position: fixed; top: .5rem; left: .5rem; z-index: 200; padding: .8rem 1rem; background: #101d38; color: white; transform: translateY(-180%); }
+.skip-link:focus { transform: translateY(0); }
+:focus-visible { outline: 3px solid #a66b12; outline-offset: 3px; }
+.syllabus-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; margin: 2rem 0; }
+.syllabus-entry { padding: 1.5rem; border: 1px solid #d4cbb8; background: #fdfcf9; color: #101d38; text-decoration: none; }
+.syllabus-entry:hover { border-color: #101d38; }
+.syllabus-chapters { line-height: 1.7; padding-left: 1.5rem; margin: 2rem 0; }
+.syllabus-chapters li { padding: .6rem 0; border-bottom: 1px solid #d4cbb8; }
+.room-catalog-form fieldset { display: grid; gap: 1rem; border: 0; padding: 0; min-width: 0; }
+.room-catalog-form label { display: grid; gap: .4rem; }
+.room-catalog-form select { width: 100%; min-width: 0; padding: .75rem; background: white; color: #101d38; }
+.practice-content { overflow-wrap: anywhere; min-width: 0; }
+.practice-content p { margin: .25rem 0; }
+.practice-content .katex-display { overflow-x: auto; overflow-y: hidden; padding: .3rem 0; }
+.attempt-summary, .attempt-form, .attempt-question { min-width: 0; }
+.attempt-question { scroll-margin-top: 6rem; }
+@media (max-width: 600px) {
+  .attempt-question { padding: 1rem !important; }
+  .attempt-question > div:first-child { flex-wrap: wrap; gap: .5rem; }
+  .history-row { overflow-wrap: anywhere; }
+}
+
+.syllabus-content { padding-block: 3rem; }
+.syllabus-content h1 { font-family: var(--font-display), Georgia, serif; font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: 1.08; margin: 1rem 0; text-wrap: balance; }
+.syllabus-content > p { max-width: 65ch; line-height: 1.65; margin-block: 1rem; }
+.syllabus-entry h2 { font-family: var(--font-display), Georgia, serif; font-size: 1.5rem; margin-bottom: .5rem; }
+
+.room-catalog-form input { width: 100%; padding: .8rem; border: 1px solid #d4cbb8; background: white; color: #101d38; }
+.question-navigator { margin-block: 1rem; }
+.question-navigator p { font-size: .8rem; line-height: 1.5; }
+.question-navigator > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(2.5rem, 1fr)); gap: .4rem; }
+.question-navigator a { display: grid; place-items: center; min-height: 2.75rem; border: 1px solid #d4cbb8; text-decoration: none; color: #101d38; background: #fff; font-variant-numeric: tabular-nums; }
+.question-navigator a.is-answered { background: #101d38; color: white; }
+
+.attempt-question > div:not(.attempt-question__meta) { display: block; text-transform: none; letter-spacing: normal; font-weight: 400; color: #101d38; font-size: 1rem; }

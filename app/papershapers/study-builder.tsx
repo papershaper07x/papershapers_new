@@ -7,18 +7,18 @@ export function StudyBuilder({ authenticated, userName }: { authenticated: boole
       <div className="page-shell builder-grid">
         <div className="builder-intro">
           <p className="kicker" style={{ color: "#c9ff47" }}>⚡ AI Mock Paper Generator</p>
-          <h2>Custom papers in seconds.<br /><em>Tailored to your syllabus.</em></h2>
+          <h2>Chapter-based practice papers.<br /><em>Tailored to your syllabus.</em></h2>
           <p>
             {authenticated
-              ? `Hey ${userName?.split(" ")[0]}! Select your CBSE class and chapters to generate a high-yield practice paper instantly.`
-              : "Sign in to lock in your class, subject, and chapter blueprint. Turn your syllabus into instant practice tests."}
+              ? `Hey ${userName?.split(" ")[0]}! Select your CBSE class and chapters to create a focused practice paper.`
+              : "Sign in to lock in your class, subject, and chapter blueprint. Create a focused test from your chapter choices."}
           </p>
         </div>
         <div className="builder-panel builder-panel--launch">
           <p className="planner-overline">CLASSES 1–12 · CBSE BOARD ALIGNED</p>
           <h3>Craft your ultimate revision paper.</h3>
           <p>
-            Choose from quick 20-min speedruns to 80-mark board simulations. Every paper features authentic MCQs, short answers, and structured long questions.
+            Choose 40 marks / 90 minutes or 80 marks / 180 minutes. Generated papers include question-level answer outlines for revision.
           </p>
           <a
             className="button button--accent builder-button"
@@ -35,7 +35,7 @@ export function StudyBuilder({ authenticated, userName }: { authenticated: boole
             {authenticated ? "Launch AI Test Planner" : "Sign in to Build Paper"} <span>→</span>
           </a>
           <p className="builder-hint">
-            Smart generation tuned to authentic NCERT curriculum concepts. Includes instant question-level answer keys and AI rubric evaluation.
+            Smart generation tuned to authentic NCERT curriculum concepts. Includes question-level answer outlines and formative AI feedback that needs review.
           </p>
         </div>
       </div>

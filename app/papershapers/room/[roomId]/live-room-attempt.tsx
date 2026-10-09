@@ -1,14 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useAttemptDraft } from "../../use-attempt-draft";
 import { useRouter } from "next/navigation";
 import { submitTestAction } from "./actions";
+import { QuestionNavigator } from "../../question-navigator";
 import { QuestionInput } from "../../question-input";
 import type { StudyPaper, StudyQuestion } from "../../study-types";
 
 export function LiveRoomAttempt({ roomId, attendeeId, paper }: { roomId: string; attendeeId: string; paper: StudyPaper }) {
   const router = useRouter();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const { answers, setAnswers, secondsLeft, ready, storageWarning, clearDraft } = useAttemptDraft(`paper-shapers-room:${roomId}:${attendeeId}`, paper.time_minutes);
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -19,10 +22,13 @@ export function LiveRoomAttempt({ roomId, attendeeId, paper }: { roomId: string;
   );
 
   async function submit() {
+    if (submitting || !ready) return;
+    if (!confirmSubmit && answeredCount < paper.questions.length) { setConfirmSubmit(true); return; }
     setSubmitting(true);
     setError("");
     try {
       await submitTestAction(roomId, attendeeId, answers);
+      clearDraft();
       setSubmitted(true);
       router.refresh();
     } catch (err: unknown) {
@@ -54,12 +60,17 @@ export function LiveRoomAttempt({ roomId, attendeeId, paper }: { roomId: string;
         <aside className="attempt-summary">
           <p className="dash-overline">LIVE ATTEMPT</p>
           <h1>{paper.subject}</h1>
+          <strong className="attempt-timer">{Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}</strong>
+          <small>Personal practice timer. Your teacher controls when the room closes. Drafts are saved on this browser for up to 24 hours.</small>
+          {storageWarning && <p role="status">{storageWarning}</p>}
+          {confirmSubmit && <p role="status">{paper.questions.length - answeredCount} unanswered. Press submit again to send, or continue answering.</p>}
+          <QuestionNavigator questions={paper.questions} answers={answers} />
           <span>{paper.total_marks} marks · {paper.time_minutes} min</span>
           <p><small>Your responses will be visible to your teacher as soon as you submit.</small></p>
           <button
             type="button"
             className="button button--accent"
-            disabled={submitting}
+            disabled={submitting || !ready}
             onClick={submit}
             style={{ width: "100%", marginTop: "1rem" }}
           >

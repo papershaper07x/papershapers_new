@@ -140,3 +140,12 @@ Meaningful repository changes are recorded here so the implementation, product n
 - Added the Paper Shapers umbrella home.
 - Added Study Lab, Perspective, and Noticeboard as distinct product routes with a shared brand baseline.
 - Added responsive behaviour, focused client interactions, structural tests, and high-level system design.
+
+## 2026-10-09 — Student platform production hardening
+
+- Protect Live Room attendee re-entry, remove student-visible answer outlines, verify paper ownership, and reject closed-room/overwrite submissions.
+- Fail production assessment closed on invalid reviews instead of awarding answer-length marks; validate submitted IDs and finite scores.
+- Add recoverable drafts/timers, network retry states, complete MCQ selection matching, math rendering, curriculum-driven teacher choices, honest educator labels and practice copy.
+- Repair curriculum URLs/source boundary; add sitemap/robots, error/404/focus navigation, shared request budgets and deployed revision endpoints. Disable analytics recording pending consent work.
+- Document the production audit, platform comparison, remaining launch gates and deployment checks.
+- Upgrade Next.js/ESLint config to 16.4.0 and apply compatible dependency patches; use the existing patched KaTeX version throughout the math dependency tree. Production dependency audit has zero reported findings.

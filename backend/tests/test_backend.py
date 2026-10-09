@@ -81,10 +81,15 @@ class BackendContractTests(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_study_uses_local_paper_setting_guidance_when_available(self) -> None:
-        from backend.app.main import settings
-
-        guidance = paper_guidance_for_selection(settings.study_curriculum_csv_path, "CBSE", "10", "Science")
-        self.assertIn("GUIDELINES FOR QUESTIONS", guidance)
+        import csv
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "curriculum.csv"
+            with (source.parent / "instructions.csv").open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=["Class", "Subject", "Chapter", "Board", "File_Data"])
+                writer.writeheader()
+                writer.writerow({"Class": "Class 10", "Subject": "Science", "Chapter": "Mock Paper", "Board": "CBSE", "File_Data": "GUIDELINES FOR QUESTIONS: include reasoning."})
+            self.assertIn("GUIDELINES FOR QUESTIONS", paper_guidance_for_selection(source, "CBSE", "10", "Science"))
+            self.assertEqual(paper_guidance_for_selection(source, "CBSE", "9", "Science"), "")
 
     def test_gemini_key_ring_retries_the_next_key_after_a_failure(self) -> None:
         from backend.app.main import router
@@ -163,3 +168,46 @@ class BackendContractTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AssessmentSafetyTests(unittest.TestCase):
+    def test_nonfinite_and_out_of_range_model_marks_are_rejected(self):
+        from backend.app.study import _validated_attempt_score
+        paper = {"questions": [{"id": "Q1", "marks": 2}]}
+        fallback = {"breakdown": [{"question_id": "Q1", "question_text": "Solve", "student_answer": "3", "feedback": "Review", "answer_outline": "3"}]}
+        for marks in [float("nan"), float("inf"), -1, 3]:
+            result = _validated_attempt_score({"breakdown": [{"question_id": "Q1", "earned_marks": marks}]}, fallback, paper, "gemini")
+            self.assertEqual(result["verification"]["status"], "fallback")
+
+    def test_finite_model_marks_use_paper_caps_and_original_response(self):
+        from backend.app.study import _validated_attempt_score
+        paper = {"questions": [{"id": "Q1", "marks": 2}]}
+        fallback = {"summary": "Review", "breakdown": [{"question_id": "Q1", "question_text": "Solve", "student_answer": "3", "feedback": "Review", "answer_outline": "3"}]}
+        result = _validated_attempt_score({"breakdown": [{"question_id": "Q1", "earned_marks": 1, "available_marks": 999, "student_answer": "invented"}]}, fallback, paper, "gemini")
+        self.assertEqual(result["total_marks"], 2)
+        self.assertEqual(result["breakdown"][0]["student_answer"], "3")
+        self.assertEqual(result["percentage"], 50)
+
+
+    def test_invalid_production_review_never_saves_length_based_marks(self):
+        from backend.app.main import router
+        from backend.app.database import Database
+        from backend.app.study import _save_paper, submit_attempt
+        from backend.app.schemas import StudyAttemptRequest
+        from backend.app.llm_router import GenerationUnavailableError
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "assessment.db")
+            database.initialize()
+            request = StudyPaperRequest(user_id="owner", grade="10", subject="Mathematics")
+            saved = _save_paper(database, request, {"title": "Test", "questions": [{"id": "Q1", "marks": 2, "text": "2+2?", "answer_outline": "4"}]}, "gemini", generation_source="fresh")
+            real_router = LLMRouter(replace(router.settings, allow_mock_fallback=False, provider_order=("gemini",), gemini_api_keys=("test-only",)))
+            real_router._request_provider = AsyncMock(return_value='{"breakdown": [{"question_id": "Q1", "earned_marks": 999}]}')
+            attempt = StudyAttemptRequest(user_id="owner", answers=[{"question_id": "Q1", "answer": "A long response that is incorrect but would previously receive completeness marks."}])
+            with self.assertRaises(GenerationUnavailableError):
+                asyncio.run(submit_attempt(database, real_router, saved["id"], attempt))
+            with database.connect() as db:
+                self.assertEqual(db.execute("SELECT COUNT(*) AS count FROM paper_attempts").fetchone()["count"], 0)
+            for ids in [["Q1", "Q1"], ["unknown"]]:
+                invalid = StudyAttemptRequest(user_id="owner", answers=[{"question_id": qid, "answer": "4"} for qid in ids])
+                with self.assertRaises(ValueError):
+                    asyncio.run(submit_attempt(database, real_router, saved["id"], invalid))

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { ScrollReveal } from "../../components/ScrollReveal";
 import { listPublishedCommunityPosts } from "../../../db/service";

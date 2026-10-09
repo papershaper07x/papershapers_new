@@ -6,7 +6,7 @@ import { getCurrentUser } from "../../lib/auth";
 import { safeAuthDestination } from "../../lib/auth-redirects";
 import { googleOAuthIsConfigured } from "../../lib/google-oauth";
 
-export const metadata: Metadata = { title: "Sign in", description: "Create or open your Paper Shapers workspace." };
+export const metadata: Metadata = { title: "Sign in", description: "Create or open your Paper Shapers workspace.", robots: { index: false, follow: false } };
 
 export default async function AuthPage({ searchParams }: { searchParams: Promise<{ next?: string; mode?: string }> }) {
   const params = await searchParams;

@@ -5,8 +5,8 @@ import { StudySupport } from "./study-support";
 import { getCurrentUser } from "../../lib/auth";
 
 export const metadata: Metadata = {
-  title: "Mock Paper Generator & Live Exam Arena for CBSE 1–12 | Paper Shapers",
-  description: "Ace your CBSE board exams with precision mock papers, live classroom battle arenas, and instant rubric evaluations. No cap.",
+  title: "CBSE chapter practice papers and teacher Live Rooms",
+  description: "Create chapter-based CBSE practice papers, attempt them online, and review formative feedback. Teachers can host Live Rooms for their class.",
   alternates: { canonical: "/papershapers" },
   openGraph: { title: "Paper Shapers Study Lab", description: "CBSE board prep: mock papers, live rooms, and instant score breakdowns." },
 };
@@ -31,9 +31,9 @@ export default async function StudyLab() {
       <section className="portal-hero page-shell">
         <div>
           <p className="kicker" style={{ color: "var(--yellow, #efbd55)" }}><span>01</span> STUDY LAB · CBSE 1–12</p>
-          <h1>Crush your exams.<br /><em>Next-level prep.</em></h1>
+          <h1>Practise your chapters.<br /><em>Understand your mistakes.</em></h1>
           <p className="hero-lede">
-            Zero fluff. Pure exam confidence. Spawn syllabus-targeted practice papers in seconds, squad up in live battle arenas, and get instant feedback with exact marking breakdowns. Straight facts.
+            Choose your class, subject, and chapters. Create a focused practice paper, attempt it online, and review question-level feedback. Teachers can bring a group into a Live Room.
           </p>
           <div className="hero-actions">
             <a
@@ -41,7 +41,7 @@ export default async function StudyLab() {
               href={user ? "/papershapers/dashboard" : "/auth?next=%2Fpapershapers%2Fdashboard"}
               style={{ fontWeight: 800 }}
             >
-              {user ? "Open My Study Desk" : "Claim Free Study Desk"} →
+              {user ? "Open My Study Desk" : "Start practising"} →
             </a>
             <a className="text-link" href="#builder">Try the Paper Brief ↓</a>
           </div>
@@ -49,8 +49,8 @@ export default async function StudyLab() {
 
         <div className="study-sheet" aria-label="Sample mathematics question paper">
           <div className="sheet-meta">
-            <span>⚡ PRACTICE ARENA</span>
-            <span>45 MIN SPEEDRUN</span>
+            <span>ILLUSTRATIVE PRACTICE QUESTIONS</span>
+            <span>CLASS 10 · MATHEMATICS</span>
           </div>
           <h2>Quadratic Equations</h2>
           <p>Targeted Chapter Prep · Class 10</p>
@@ -64,7 +64,7 @@ export default async function StudyLab() {
             <span>If α and β are the roots of 2x² + 5x − 3, calculate the value of α + β.</span>
             <i>2 marks</i>
           </div>
-          <div className="sheet-scribble">Instant grading on submit →</div>
+          <div className="sheet-scribble">Formative feedback after submission →</div>
         </div>
       </section>
 
@@ -72,40 +72,40 @@ export default async function StudyLab() {
 
       <section className="study-explainer page-shell" id="how-it-works">
         <div className="section-heading">
-          <p className="kicker">The ultimate revision loop</p>
-          <h2>One paper. Major Ws.</h2>
+          <p className="kicker">Your practice loop</p>
+          <h2>Practise, review, repeat.</h2>
           <p>
-            Stop passive re-reading. Active recall with instant feedback turns tough chapters into easy Ws. Secure the bag for your finals.
+            Use a focused paper to identify questions that need another explanation, then review the answer outlines with your teacher.
           </p>
         </div>
         <ol className="study-explainer__steps">
           <li>
             <span>01</span>
-            <h3>Lock in your exact syllabus.</h3>
-            <p>Pick your class, stream, subject, and the exact chapters you are learning right now. No irrelevant questions, no guesswork.</p>
+            <h3>Choose your assigned chapters.</h3>
+            <p>Pick your class, stream, subject, and the exact chapters you are learning right now. Confirm the chapter selection against your school’s current syllabus.</p>
           </li>
           <li>
             <span>02</span>
-            <h3>Choose your challenge level.</h3>
-            <p>Tackle a 20-min rapid speedrun, an exam power check (40 marks), or a full 80-mark board marathon with official timing.</p>
+            <h3>Choose your paper length.</h3>
+            <p>Choose a 40-mark paper with 90 minutes of practice time or an 80-mark paper with 180 minutes. These are practice formats, not official timings for every subject.</p>
           </li>
           <li>
             <span>03</span>
-            <h3>Conquer the test arena.</h3>
+            <h3>Attempt at your own desk.</h3>
             <p>Attempt in a distraction-free view with interactive MCQ tap-to-select, live timers, and background autosave.</p>
           </li>
           <li>
             <span>04</span>
-            <h3>Level up with instant grading.</h3>
-            <p>Vibe check your answers instantly. Get a breakdown of earned marks, expected CBSE marking steps, and targeted insights showing you exactly how to max out your score.</p>
+            <h3>Review formative feedback.</h3>
+            <p>Read the feedback beside each response and answer outline. AI feedback may be incorrect; use teacher judgement when reviewing it.</p>
           </li>
         </ol>
       </section>
 
       <section className="toolkit page-shell" id="toolkit">
         <div className="section-heading">
-          <p className="kicker">Next-gen study tools</p>
-          <h2>Power up your daily revision.</h2>
+          <p className="kicker">Planned tools</p>
+          <h2>More study tools are planned.</h2>
         </div>
         <div className="tool-grid">
           <article>

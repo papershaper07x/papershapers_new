@@ -5,7 +5,8 @@ import { getTeacherRooms, getUserRole } from "../../../../db/service";
 import { getCurrentUser } from "../../../../lib/auth";
 import { backendFetch } from "../../../../lib/backend";
 import { SiteHeader, SiteFooter } from "../../../components/SiteChrome";
-import { createRoomAction, verifyTeacherRoleAction } from "./actions";
+import { createRoomAction, declareTeacherRoleAction } from "./actions";
+import { CatalogRoomForm } from "./catalog-room-form";
 import type { StudyPaperRecord } from "../../study-types";
 
 export const metadata: Metadata = {
@@ -39,7 +40,7 @@ export default async function TeacherRoomsPage() {
         <span className="text-sm">
           Live Testing ·{" "}
           <span className={`font-bold ${userRole.role === "teacher" ? "text-emerald-800" : "text-amber-800"}`}>
-            {userRole.role === "teacher" ? "Verified Educator" : "Student Account"}
+            {userRole.role === "teacher" ? "Educator (self-declared)" : "Student Account"}
           </span>
         </span>
       </div>
@@ -49,7 +50,7 @@ export default async function TeacherRoomsPage() {
           <p className="dash-overline">EDUCATOR WORKBENCH</p>
           <h1 className="text-4xl font-serif font-medium mt-2">Host a live test room.</h1>
           <p className="mt-2 text-lg text-gray-700 max-w-2xl">
-            Conduct real-time mock exams with any CBSE syllabus. Share your room code with students, monitor attempts live, and run AI-assisted evaluations on completed responses.
+            Run live practice sessions with supported classes and subjects. Share your room code with students, monitor attempts live, and run AI-assisted evaluations on completed responses.
           </p>
         </div>
       </section>
@@ -61,12 +62,12 @@ export default async function TeacherRoomsPage() {
               EDUCATOR VERIFICATION
             </span>
             <h2 className="text-white text-4xl mt-3 mb-2 font-serif font-medium">
-              Teacher verification required.
+              Choose your educator workspace.
             </h2>
             <p className="text-[#f8f5ed]/90 text-base leading-relaxed max-w-[680px] mb-6">
-              Live Rooms is an educator-only capability designed for teachers and coaching leaders to host and assess classroom mock tests. To prevent student interference, please confirm your educator status.
+              Live Rooms is an educator-only capability designed for teachers and coaching leaders to host and assess classroom mock tests. This is a self-declaration, not independent verification of your affiliation.
             </p>
-            <form action={verifyTeacherRoleAction} className="flex flex-col gap-4 max-w-[520px]">
+            <form action={declareTeacherRoleAction} className="flex flex-col gap-4 max-w-[520px]">
               <div>
                 <label htmlFor="instName" className="block mb-1.5 text-[#f8f5ed] text-sm font-semibold">
                   School, Coaching, or Institution Name (Optional)
@@ -92,71 +93,16 @@ export default async function TeacherRoomsPage() {
             {/* Create Room via Curriculum Catalog */}
             <article className="dash-primary bg-[#101d38] border-2 border-[#d9b85f] rounded-lg p-8 text-[#f8f5ed]">
               <span className="dash-label text-[#efbd55] font-mono text-sm font-bold">
-                OPTION 1 · INSTANT SYLLABUS ROOM
+                OPTION 1 · CURRICULUM PAPER
               </span>
               <h2 className="text-white text-3xl mt-2 mb-4 font-serif font-medium">
                 Launch by Class &amp; Subject
               </h2>
               <p className="text-[#f8f5ed]/85 text-sm mb-5 leading-relaxed">
-                Select from all CBSE Classes 1–12 subjects to launch a live room immediately:
+                Choose a class and supported subject from the installed curriculum catalogue:
               </p>
 
-              <form action={createRoomAction} className="flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="classSelect" className="block mb-1 text-sm font-semibold text-[#f8f5ed]">Class:</label>
-                    <select
-                      id="classSelect"
-                      name="grade"
-                      defaultValue="10"
-                      className="w-full p-3 rounded-md bg-white text-[#101d38] border border-gray-300 text-sm"
-                    >
-                      <option value="9">Class 9</option>
-                      <option value="10">Class 10</option>
-                      <option value="11">Class 11</option>
-                      <option value="12">Class 12</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="formatSelect" className="block mb-1 text-sm font-semibold text-[#f8f5ed]">Paper Format:</label>
-                    <select
-                      id="formatSelect"
-                      name="paperSize"
-                      defaultValue="half"
-                      className="w-full p-3 rounded-md bg-white text-[#101d38] border border-gray-300 text-sm"
-                    >
-                      <option value="half">Half · 40 Marks (90 min)</option>
-                      <option value="full">Full · 80 Marks (180 min)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="subjectSelect" className="block mb-1 text-sm font-semibold text-[#f8f5ed]">Subject:</label>
-                  <select
-                    id="subjectSelect"
-                    name="subject"
-                    defaultValue="Science"
-                    className="w-full p-3 rounded-md bg-white text-[#101d38] border border-gray-300 text-sm"
-                  >
-                    <option value="Science">Science (Physics, Chemistry, Biology)</option>
-                    <option value="Mathematics">Mathematics</option>
-                    <option value="Social Science">Social Science (History, Civics, Geography)</option>
-                    <option value="English">English</option>
-                    <option value="Physics">Physics (Classes 11–12)</option>
-                    <option value="Chemistry">Chemistry (Classes 11–12)</option>
-                    <option value="Biology">Biology (Classes 11–12)</option>
-                    <option value="Economics">Economics (Classes 11–12)</option>
-                  </select>
-                </div>
-
-                <button
-                  type="submit"
-                  className="button button--accent self-start mt-2 bg-green-600 text-white font-black border-2 border-green-900 shadow-[4px_4px_0_#064e3b] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#064e3b] transition-all"
-                >
-                  ⚡ Launch Live Room for This Syllabus →
-                </button>
-              </form>
+              <CatalogRoomForm />
             </article>
 
             {/* Create Room via Library or Custom ID */}
@@ -200,7 +146,7 @@ export default async function TeacherRoomsPage() {
                   <input
                     id="customId"
                     type="text"
-                    name="paperId"
+                    name="customPaperId"
                     placeholder="e.g. 7daa6ba7-979d-442b..."
                     className="w-full p-3 rounded-md border border-gray-300 text-sm"
                   />
