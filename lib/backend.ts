@@ -22,7 +22,7 @@ export async function backendFetch<T>(path: string, init?: RequestInit): Promise
   if (process.env.BACKEND_SHARED_SECRET) headers.set("X-Backend-Secret", process.env.BACKEND_SHARED_SECRET);
   let response: Response;
   try {
-    response = await fetch(`${origin}${path}`, { ...init, headers, signal: AbortSignal.timeout(60_000) });
+    response = await fetch(`${origin}${path}`, { ...init, headers, signal: init?.signal ?? AbortSignal.timeout(60_000) });
   } catch {
     throw new BackendUnavailableError();
   }

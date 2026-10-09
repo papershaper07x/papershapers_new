@@ -47,9 +47,6 @@ next-env.d.ts
 /local-reference-archive/
 # Empty shells from nested reference repositories can remain after their files
 # are moved on Windows; keep them excluded too.
-/news_papershapers/
-/newspaper/
-/newspaper2/
 /papershapers/
 
 # Imported/generated curriculum material is local operational data, not source
@@ -70,5 +67,8 @@ next-env.d.ts
 /backend/.venv/
 /backend/data/*.db*
 /backend/data/*.jsonl
+/backend/data/*.sqlite
+/backend/data/*-backend.*.log
+/backend/data/pipeline-api.*.log
 /backend/__pycache__/
 /backend/**/__pycache__/

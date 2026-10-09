@@ -10,20 +10,20 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(origin),
     title: { default: "Paper Shapers — A house of useful ideas", template: "%s · Paper Shapers" },
-    description: "Practical digital products for learning, perspective, and local discovery.",
+    description: "Practical digital products for learning and local discovery.",
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
     openGraph: {
       type: "website",
       siteName: "Paper Shapers",
-      title: "Three ideas. One useful internet.",
-      description: "Explore practical tools for learning, balanced news, and neighbourhood discovery.",
-      images: [{ url: `${origin}/og.png`, width: 1733, height: 909, alt: "Paper Shapers — Three ideas. One useful internet." }],
+      title: "Two ideas. One useful internet.",
+      description: "Explore practical tools for learning and neighbourhood discovery.",
+      images: [{ url: `${origin}/opengraph-image`, width: 1200, height: 630, alt: "Paper Shapers — Two ideas. One useful internet." }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Three ideas. One useful internet.",
+      title: "Two ideas. One useful internet.",
       description: "A house of practical digital products by Paper Shapers.",
-      images: [`${origin}/og.png`],
+      images: [`${origin}/opengraph-image`],
     },
   };
 }

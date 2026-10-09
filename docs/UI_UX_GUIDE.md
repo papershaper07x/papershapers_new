@@ -8,7 +8,6 @@ The umbrella should feel like one house with three independent rooms. Shared chr
 flowchart LR
   A[Land on umbrella home] --> B{Choose a need}
   B --> S[Study Lab: configure practice]
-  B --> P[Perspective: compare lenses]
   B --> N[Noticeboard: scan nearby posts]
   S --> R[Clear prototype handoff]
   P --> R
@@ -30,13 +29,11 @@ flowchart LR
 | Portal | User mindset | Visual/interaction character | Primary flow |
 | --- | --- | --- | --- |
 | Study Lab | Focused, task-oriented | Structured sheets, deliberate controls, academic clarity | Choose context → shape a study brief → review sample/handoff |
-| Perspective | Careful, analytical | Editorial pacing, visible labels, restrained comparison | Read fact base → switch lens → inspect framing/questions |
 | Noticeboard | Fast, local, time-sensitive | Tactile cards, energetic categories, scannable details | Confirm area → filter category → inspect a fresh post |
 
 These are now implemented as separate visual systems rather than colour variants:
 
 - **Study:** navy/gold academic workbench, graph-paper surfaces, exam-sheet objects, deliberate progress/history tables.
-- **Perspective:** newspaper masthead, edition rules, long-form serif rhythm, restrained red editorial accents, no infinite feed.
 - **Nearby:** warm location-led marketplace, cheerful tickets, rounded controls, short scannable cards, explicit area context.
 
 ## Account journeys
@@ -48,19 +45,16 @@ flowchart TD
   SA -- Yes --> SR[Store brief in D1]
   A --> SR
   SR --> SD[Study dashboard + history]
-  N[Perspective or Nearby visitor] --> PB[Public browsing]
   PB --> O{Save, personalise, or post?}
   O -- No --> PB
   O -- Yes --> A
   A --> ND[Portal-specific dashboard]
 ```
 
-The account screen is shared because identity is shared. The destination after sign-in is portal-specific. Perspective and Nearby prompts are delayed, dismissible, and never cover the core reading/browsing experience permanently.
 
 ## Dashboard principles
 
 - Study history is operational: every real brief is stored, dated, and distinguished from seeded samples.
-- Perspective preferences affect topic ordering only; all political/editorial lenses remain available.
 - Nearby cold start uses explicit interests and a coarse area rather than precise location or inferred sensitive traits.
 - Seed data carries a visible `SAMPLE` label and is not counted as real user achievement.
 - Dashboard controls write to D1 and provide an immediate saved/error state.

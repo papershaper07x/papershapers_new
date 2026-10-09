@@ -6,7 +6,7 @@ import { getCurrentUser } from "../lib/auth";
 export const metadata: Metadata = {
   title: "Paper Shapers — A house of useful ideas",
   description:
-    "Explore practical tools for learning, balanced news, and neighbourhood discovery — all under one independent umbrella.",
+    "Explore practical tools for learning and neighbourhood discovery — all under one independent umbrella.",
 };
 
 const portals = [
@@ -23,17 +23,6 @@ const portals = [
   },
   {
     number: "02",
-    eyebrow: "Read all sides",
-    title: "Perspective",
-    description:
-      "One story, three lenses. Compare how the left, centre, and right frame the same news without the shouting match.",
-    action: "Open today’s edition",
-    href: "/perspective",
-    className: "portal-card--news",
-    detail: "Context · Contrast · Clarity",
-  },
-  {
-    number: "03",
     eyebrow: "Discover nearby",
     title: "Noticeboard",
     description:
@@ -53,7 +42,7 @@ export default async function Home() {
       <section className="home-hero page-shell">
         <div className="hero-copy">
           <p className="kicker"><span>Independent studio</span> · Built in India</p>
-          <h1>Three ideas.<br /><em>One useful</em> internet.</h1>
+          <h1>Two ideas.<br /><em>One useful</em> internet.</h1>
           <p className="hero-lede">
             Paper Shapers is growing into a small house of practical digital products — each with its own personality, all built to make everyday life a little clearer.
           </p>
@@ -62,17 +51,16 @@ export default async function Home() {
             <a className="text-link" href="#principles">Why we’re building this <span>↗</span></a>
           </div>
         </div>
-        <div className="hero-poster" aria-label="Three product portals: learn, understand, and discover">
+        <div className="hero-poster" aria-label="Two product portals: learn and discover">
           <div className="poster-orbit poster-orbit--one">Learn</div>
-          <div className="poster-orbit poster-orbit--two">Understand</div>
-          <div className="poster-orbit poster-orbit--three">Discover</div>
+          <div className="poster-orbit poster-orbit--two">Discover</div>
           <div className="poster-stamp">PS<br /><small>EST. 2025</small></div>
           <p>Good ideas deserve<br />room to become real.</p>
         </div>
       </section>
 
       <div className="marquee" aria-hidden="true">
-        <div>LEARN SOMETHING <span>✦</span> SEE EVERY SIDE <span>✦</span> FIND WHAT’S NEARBY <span>✦</span> LEARN SOMETHING <span>✦</span> SEE EVERY SIDE <span>✦</span></div>
+        <div>LEARN SOMETHING <span>✦</span> FIND WHAT’S NEARBY <span>✦</span> LEARN SOMETHING <span>✦</span> FIND WHAT’S NEARBY <span>✦</span></div>
       </div>
 
       <section className="ideas-section page-shell" id="ideas">
@@ -85,7 +73,7 @@ export default async function Home() {
           {portals.map((portal) => (
             <Link className={`portal-card ${portal.className}`} href={portal.href} key={portal.title}>
               <div className="portal-card__top"><span>{portal.number}</span><span>{portal.eyebrow}</span></div>
-              <div className="portal-card__symbol" aria-hidden="true">{portal.number === "01" ? "Aa" : portal.number === "02" ? "≠" : "⌖"}</div>
+              <div className="portal-card__symbol" aria-hidden="true">{portal.number === "01" ? "Aa" : "⌖"}</div>
               <div>
                 <p className="portal-card__detail">{portal.detail}</p>
                 <h3>{portal.title}</h3>

@@ -10,7 +10,7 @@ from psycopg import sql
 
 WEB_TABLES = ["users", "sessions", "auth_identities", "study_requests", "user_preferences", "saved_items", "contact_submissions", "community_posts", "user_roles"]
 ROOM_TABLES = ["test_rooms", "test_attendees"]
-API_TABLES = ["generated_papers", "generated_paper_cache", "paper_attempts", "paper_feedback", "news_articles", "news_perspectives", "marketplace_listings"]
+API_TABLES = ["generated_papers", "generated_paper_cache", "paper_attempts", "paper_feedback", "marketplace_listings"]
 
 
 def copy_database(source: Path, tables: list[str], target: psycopg.Connection) -> None:

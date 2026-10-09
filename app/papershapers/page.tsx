@@ -41,9 +41,9 @@ export default async function StudyLab() {
               href={user ? "/papershapers/dashboard" : "/auth?next=%2Fpapershapers%2Fdashboard"}
               style={{ fontWeight: 800 }}
             >
-              {user ? "Open My Study Desk" : "Start practising"} →
+              {user ? "Open your study desk" : "Start practising"} →
             </a>
-            <a className="text-link" href="#builder">Try the Paper Brief ↓</a>
+            <a className="text-link" href="#builder">Choose your chapters ↓</a>
           </div>
         </div>
 

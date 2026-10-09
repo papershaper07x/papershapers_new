@@ -6,13 +6,13 @@ const root = new URL("../", import.meta.url);
 
 test("umbrella home links to every portal", async () => {
   const page = await readFile(new URL("app/page.tsx", root), "utf8");
-  for (const route of ["/papershapers", "/perspective", "/noticeboard"]) {
+  for (const route of ["/papershapers", "/noticeboard"]) {
     assert.match(page, new RegExp(`href: \\"${route}\\"`));
   }
 });
 
 test("each portal has a route and a maintained brief", async () => {
-  for (const portal of ["papershapers", "perspective", "noticeboard"]) {
+  for (const portal of ["papershapers", "noticeboard"]) {
     const page = await readFile(new URL(`app/${portal}/page.tsx`, root), "utf8");
     const brief = await readFile(new URL(`app/${portal}/README.md`, root), "utf8");
     assert.match(page, /export default (?:async )?function/);
@@ -32,7 +32,6 @@ test("account and dashboard routes exist for every portal", async () => {
     "app/api/auth/signup/route.ts",
     "app/api/auth/login/route.ts",
     "app/papershapers/dashboard/page.tsx",
-    "app/perspective/dashboard/page.tsx",
     "app/noticeboard/dashboard/page.tsx",
   ]) {
     const source = await readFile(new URL(file, root), "utf8");
@@ -78,8 +77,6 @@ test("legal and launch-readiness pages are maintained", async () => {
 test("each portal has a same-origin backend adapter", async () => {
   const required = [
     "app/api/study/generate/route.ts",
-    "app/api/news/articles/route.ts",
-    "app/api/news/analyze/route.ts",
     "app/api/marketplace/listings/route.ts",
     "lib/backend.ts",
     "backend/app/main.py",

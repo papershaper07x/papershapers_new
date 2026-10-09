@@ -19,3 +19,6 @@ Accounts are optional for browsing. Signed-in people can explicitly choose their
 ## Planned backend contract
 
 `GET /api/marketplace/listings` proxies the backend catalogue and ranks by coarse area, selected interests, and freshness. Posts contain an organiser, area, category, title, body, contact action, and expiry. User publishing remains disabled until verification, abuse controls, and an auditable moderation queue exist.
+
+## Account persistence
+Only marketplace preferences and saved listings are accepted by the shared account APIs. Preferences are stored in the reserved `__preferences__` metadata record and excluded from the saved-list UI; older marketplace preference columns remain readable. Other portal values return 400.

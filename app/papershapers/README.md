@@ -2,7 +2,7 @@
 
 ## Product boundary
 
-Study Lab helps learners and educators configure focused practice, turn their own material into active revision, and organise research. It owns educational content and generation workflows; it does not own general news or local advertising.
+Study Lab helps learners and educators configure focused practice, turn their own material into active revision, and organise research. It owns educational content and generation workflows; it does not own local advertising.
 
 ## Current experience
 
@@ -72,3 +72,23 @@ Read [the complete student audit](../../docs/STUDENT_PLATFORM_AUDIT.md). Live Ro
 
 ## Scientific question content
 Papers retain JSON structure with Markdown/LaTeX text, mhchem chemical equations, and optional validated version-1 diagrams. Supported diagrams include series/parallel resistor and capacitor circuits, uniform fields, and directed flow relationships. Reading, attempts, Live Rooms, review and print share the renderer. See `docs/QUESTION_CONTENT.md` for the contract and limits. Older papers remain compatible; new diagrams require new generation.
+
+## Interface details
+The planner uses five fieldsets with pressed-state buttons, chapter selection feedback and a live summary. Generation disables its controls and reports progress inline; errors keep the selections for retry. Source details are expandable. Full-paper copy explicitly distinguishes chapter practice from a verified board mock. Study typography balances headings, improves paragraph wrapping and provides generous reading line heights. Local SVG action icons require no added dependency. Paper actions distinguish printing from returning to already saved papers.
+
+## Interface references
+The Study refinements follow plain, specific copy principles reviewed in [Humanizer](https://github.com/blader/humanizer), with [Superdesign](https://github.com/superdesigndev/superdesign) and [Better Icons](https://github.com/better-auth/better-icons) reviewed as design resources. The implementation uses existing CSS and local SVG icons, with no new packages or external runtime services. Responsive browser checks use explicitly labelled test fixtures, not live curriculum claims.
+
+## Background paper generation
+The planner posts a short request that returns a generation job (HTTP 202), then polls its owner-scoped status every five seconds. Questions run on the FastAPI host rather than inside the web request. Transient polling outages do not submit another generation. Finished papers appear in the archive even if the browser closes. If the wait exceeds the polling window, check saved papers before creating another. HTML gateway responses show a useful error instead of raw JSON parser output.
+
+## Board mock drafts — Maths 2026–27
+The planner supports Class 10 Mathematics Standard and Class 12 Mathematics (041) as separate board-mock drafts. Both use 38 questions, 80 marks and 180 minutes, with subject/session-specific OR rules and exact unit budgets from the official curriculum. Chapter allocation within units is our template, not an official chapter weighting. Chapter practice remains available independently.
+
+Slots fix question IDs, types, marks, chapters, topic requirements, case-study subparts and choices before generation. Four-question groups use topic-ranked chunks across full installed NCERT chapters. Structural/resource checks and a separate model solve/check pass reject invalid drafts; affected slots receive up to two repair calls. No illustrative fallback can be published as a board mock. Full source coverage is required; ambiguous Part II file numbering is resolved using textbook section numbers.
+
+Readers, timed attempts and printing share the stored JSON. Readers show options, OR questions and case-study parts; attempts select one OR branch and persist nested responses in the existing draft store. Student responses do not receive keys or marking schemes. Operator review bundles include solutions and step credits. All drafts display educator-review-pending; a model check does not establish educator approval or guaranteed mathematical correctness.
+
+Reference profiles: [X SQP](https://cbseacademic.nic.in/web_material/SQP/ClassX_2026_27/MathsStandard-SQP.pdf), [XII SQP](https://cbseacademic.nic.in/web_material/SQP/ClassXII_2026_27/Maths-SQP.pdf), [X curriculum](https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/Maths_SecP1X_2026-27.pdf), [XI–XII curriculum](https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Maths_SecP2_2026-27.pdf).
+
+Board figures remain horizontally scrollable within narrow readers; printing removes shared site navigation. Generation rejects invalid figures rather than publishing incomplete papers.

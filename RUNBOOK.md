@@ -35,7 +35,6 @@ Open `http://localhost:3000`. The routes are:
 | --- | --- |
 | Umbrella home | `http://localhost:3000/` |
 | Study Lab | `http://localhost:3000/papershapers` |
-| Perspective | `http://localhost:3000/perspective` |
 | Noticeboard | `http://localhost:3000/noticeboard` |
 
 Stop the server with `Ctrl+C`.
@@ -52,7 +51,6 @@ Apply the shared migration before first run, then create a local account at `htt
 .\run.ps1 test   # production build plus structural tests
 .\run.ps1 check  # lint, build, and tests
 .\backend.ps1 test    # backend-only tests
-.\backend.ps1 batch   # load bundled illustrative news
 .\backend.ps1 health  # inspect a running backend
 ```
 

@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class StudyPaperRequest(BaseModel):
+    mode: Literal["practice", "board-mock"] = "practice"
+    academic_session: Literal["2026-27"] = "2026-27"
     user_id: str = Field(min_length=1, max_length=100)
     paper_size: Literal["half", "full"] = "half"
     board: str = Field(default="CBSE", min_length=2, max_length=30)
@@ -34,15 +36,6 @@ class StudyPaperFeedbackRequest(BaseModel):
     user_id: str = Field(min_length=1, max_length=100)
     category: Literal["good-fit", "difficulty", "wording", "coverage", "other"]
     comment: str = Field(default="", max_length=1200)
-
-
-class NewsAnalysisRequest(BaseModel):
-    article_id: str = Field(min_length=1, max_length=100)
-
-
-class NewsBatchRequest(BaseModel):
-    feeds: list[str] = Field(default_factory=list, max_length=20)
-    use_fixture: bool = False
 
 
 class MarketplaceQuery(BaseModel):

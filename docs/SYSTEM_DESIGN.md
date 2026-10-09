@@ -12,15 +12,12 @@ flowchart LR
   E --> U[Umbrella application]
   U --> H[Home /]
   U --> S[Study Lab /papershapers]
-  U --> P[Perspective /perspective]
   U --> N[Noticeboard /noticeboard]
   S --> PG[(PostgreSQL)]
-  P --> PG
   N --> PG
   U --> AUTH[Shared account + session boundary]
   AUTH --> PG
   S --> API[FastAPI service]
-  P --> API
   N --> API
   API --> PG
   API --> LLM[Gemini API]
@@ -45,7 +42,6 @@ sequenceDiagram
   W-->>V: Portal-owned history and preferences
 ```
 
-Study requires authentication before creating a brief. Perspective and Nearby remain readable without an account; saving, personalisation, and posting require one. A shared `.papershapers.in` cookie supports all three custom subdomains.
 
 ## Target system (phases 2–3)
 
@@ -54,15 +50,11 @@ flowchart TB
   DNS[papershapers.in + portal subdomains] --> EDGE[CDN, TLS, routing, rate limits]
   EDGE --> HOME[Umbrella web]
   EDGE --> STUDY[Study service]
-  EDGE --> NEWS[Perspective service]
   EDGE --> LOCAL[Noticeboard service]
   STUDY --> GEN[Generation API + job queue]
   STUDY --> OBJECTS[Private document storage]
-  NEWS --> INGEST[Source ingestion + normalisation]
-  NEWS --> EDIT[Editorial review + provenance]
   LOCAL --> MOD[Posting + moderation workflow]
   STUDY --> DATA[(Portal-owned data)]
-  NEWS --> DATA
   LOCAL --> DATA
   HOME --> ANALYTICS[Privacy-aware product analytics]
 ```
@@ -73,7 +65,6 @@ Suggested domain map:
 | --- | --- | --- |
 | Umbrella | `/` | `papershapers.in` |
 | Study Lab | `/papershapers` | `learn.papershapers.in` |
-| Perspective | `/perspective` | `news.papershapers.in` |
 | Noticeboard | `/noticeboard` | `nearby.papershapers.in` |
 
 The single Worker is attached to every hostname. It internally rewrites `/` and `/dashboard` to the corresponding portal route; it does not send an HTTP redirect, so the public URL remains the subdomain. Extraction should happen only when a portal needs a distinct backend, security boundary, team, or release cadence.
@@ -85,8 +76,6 @@ The single Worker is attached to every hostname. It internally rewrites `/` and 
 | `users` | Shared identity only; unique email and salted password derivative |
 | `sessions` | Shared hashed opaque sessions with a 30-day expiry |
 | `study_requests` | Study-owned request/history records, including labelled demo rows and a nullable paper ID linking new briefs to the corresponding private generated paper |
-| `user_preferences` | Per-portal news topics, marketplace interests, and coarse area |
-| `saved_items` | Portal-scoped saved news and marketplace items |
 | `generated_paper_cache` | Study-only, expiry-bound identity-free validated paper content; recovery-only, never attempts or learner records |
 | `paper_feedback` | Study-owned, owner-scoped category/comment signal for human review; excluded from live prompts and learner scoring |
 | `contact_submissions` | Public Study contact/feedback notes with minimal reply context; separate from learner papers and never published as testimonials without permission |
@@ -105,7 +94,6 @@ Teacher Live Rooms provide a lightweight, friction-free session boundary: hostin
 ## Portal boundaries
 
 - **Study Lab:** curricula, practice configuration, uploads, generation jobs, answer keys, saved work.
-- **Perspective:** sources, claims, viewpoint analysis, editorial decisions, corrections, publication history.
 - **Noticeboard:** places, geographic cells, posts, expiry, verification, reports, moderation.
 - **Umbrella:** discovery, shared brand, cross-navigation, legal pages, and aggregate status only.
 
@@ -170,7 +158,6 @@ To ensure curriculum data remains synchronized with authentic NCERT textbook edi
 9. **Formative Assessment Disclaimers:** All AI evaluations and mock papers carry explicit formative notices clarifying that scores are practice estimates designed to aid educator review, not official examination results.
 
 
-### Perspective publishing
 
 1. Ingest licensed feeds and primary sources; preserve canonical URLs and timestamps.
 2. Cluster reporting about the same event.
@@ -192,7 +179,6 @@ To ensure curriculum data remains synchronized with authentic NCERT textbook edi
 - Rate-limit generation, authentication, publishing, and reporting separately.
 - Use short-lived signed upload URLs; scan documents before processing.
 - Isolate uploaded content from prompts and treat it as untrusted data.
-- Keep immutable provenance for news sources and editorial changes.
 - Minimise location precision and never expose a private user's exact coordinates.
 - Expire noticeboard posts by default and record moderation actions.
 - Add consent-aware analytics; avoid cross-portal behavioural profiles.
@@ -231,9 +217,22 @@ The selected experimental production topology is Netlify for the web runtime, Re
 
 The shared PostgreSQL migration, both runtime adapters, least-privilege local roles, and idempotent legacy-data importer are implemented and tested locally. Backend SQLite remains an isolated test fallback. See [DEPLOYMENT_NETLIFY_RENDER_NEON.md](DEPLOYMENT_NETLIFY_RENDER_NEON.md).
 
+
+
 ## Student production hardening — 9 October 2026
 
 Study public curriculum routes consume `/v1/study/catalog` rather than an ignored web-host JSON file. Live Room attendee recovery requires the existing scoped HTTP-only cookie; roll numbers are not recovery credentials. Student client props exclude answer outlines. Submission conditionally updates only joined attendees in an active room. Educator self-declaration does not grant independent verification. Production assessment rejects invalid/nonfinite model marks in the provider retry chain. PostgreSQL `request_limits` adds shared fixed-window budgets; When shared limits are enabled, Netlify prebuild prepares their additive migration/grants using a build migration credential where required. Browser draft deadlines use wall-clock time and drafts logically expire after 24 hours; this is not server-backed recovery or enforced exam timing. Source revision endpoints support cross-service deployment verification. See `STUDENT_PLATFORM_AUDIT.md` for unresolved launch gates.
 
 ## Scientific content contract
 Question JSON optionally carries version-1 circuit, uniform-field or flow specifications, validated before generation persistence. Code-owned SVG geometry renders escaped labels through a shared question renderer; Markdown/LaTeX and KaTeX mhchem handle notation. Original diagram data accompanies scoring and review snapshots. Cache identity includes diagram schema version. No new storage table, external rendering service or paid capability is introduced. Contract and limitations: `docs/QUESTION_CONTENT.md`.
+
+## Backend migration recovery
+
+## Two-portal storage and lifecycle
+Study and Noticeboard share identity; all public routes and background jobs belong to those products. Marketplace preferences now use the reserved `__preferences__` saved-item metadata record, excluded from saved-item lists and protected from generic saved-item writes. Existing market preferences are read from the original table until a new record is saved. This avoids inserting into the obsolete required column on older databases. The explicit owner-run cleanup migration removes retired storage while preserving accounts, study content and marketplace preferences. Retired routes return 404; startup checks only the initial schema.
+
+## Generation request boundary
+Paper generation runs in the FastAPI lifespan worker. Versioned job endpoints accept a brief and expose owner-scoped status; web API requests enqueue/poll with a 15-second upstream budget. The existing generated_papers row stores a queued request, a running lease in status, or a completed paper. Conditional updates claim work across processes. Model execution is bounded to 240 seconds, shorter than the 300-second lease; process restarts recover queued work. Readers and archives select only generated rows. This uses existing least-privilege runtime table access and no new hosted service or schema migration. A browser disconnect does not cancel accepted work. Failed/queued records are not papers and cannot be assessed. Deploy backend first, then frontend.
+
+## Board mock domain contract
+CBSE session/grade/subject-code profiles preallocate 38 Maths slots. Unit marks come from official curricula; chapter scheduling is an internal template. Full NCERT sources are resolved by textbook section identity, not ambiguous split-volume file labels. Four-slot generation batches retrieve topic-ranked text chunks; structural checks, independent model checks and bounded repairs precede full assembly validation. Hash/chunk provenance is stored in each question. JSON recursively represents subparts, alternative branches, plots and marking steps. Backend/public responses omit grading data; assessments resolve only the selected branch. Draft status stays educator-review-pending. Board jobs receive a separate longer execution/lease budget and need no new persistence tables or paid service. Plot figures are bounded point/line schematics, not arbitrary SVG or executable markup; axes and numeric information must be explicit. Full function plotting/circles are not inferred by the renderer.

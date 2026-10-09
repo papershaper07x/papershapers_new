@@ -15,7 +15,6 @@ Useful commands:
 
 ```powershell
 .\backend.ps1 test
-.\backend.ps1 batch
 .\backend.ps1 health
 ```
 
@@ -58,9 +57,6 @@ Use the provider's dashboard to create a personal development key and check its 
 | `GET /v1/study/papers/:paperId?user_id=…` | Owner-scoped full paper view | `generated_papers` |
 | `POST /v1/study/papers/:paperId/attempts` | Store responses and create formative feedback | `paper_attempts` |
 | `GET /v1/study/papers/:paperId/attempts/:attemptId?user_id=…` | Owner-scoped formative result | `paper_attempts` |
-| `GET /v1/news/articles` | Normalized news catalogue | `news_articles` |
-| `POST /v1/news/analyze` | Three clearly labelled editorial lenses | `news_perspectives` |
-| `POST /v1/news/batch` | Fixture or configured RSS ingestion | news tables |
 | `GET /v1/marketplace/listings` | Area/interest/freshness-ranked illustrative listings | `marketplace_listings` |
 
 PostgreSQL is the normal local and hosted persistence layer. SQLite remains only for isolated backend tests. Slow generation/ingestion should move behind a job queue as traffic grows; route schemas can remain stable.
@@ -73,9 +69,12 @@ Render receives LLM keys, `DATABASE_URL`, and `BACKEND_SHARED_SECRET`. It must n
 
 ## Safety and product limits
 
-Generated study answers require educator review. Study generation does not save a template paper when a provider is unavailable or returns invalid JSON. When every configured real provider is unavailable, it may create a new owner-scoped copy of an unexpired matching validated cache entry; otherwise it returns an error. News lenses are analysis drafts, not verified reporting, and must retain source links plus human editorial review before publication. Marketplace data is illustrative until verification, moderation, reporting, and expiry jobs exist. The API never logs model credentials or returns provider error bodies.
 
 For Study attempts, model-assisted feedback is accepted only when every generated question ID is present, every score is numeric, and no score exceeds that question's mark cap. Otherwise the API returns the local practice rubric. This protects result shape and mark bounds; it does not independently certify an academic answer as correct.
+
+
+
+
 
 ## Student assessment hardening — 9 October 2026
 
@@ -83,3 +82,17 @@ Production assessment validates question IDs, numeric finite scores and paper ma
 
 ## Question diagrams
 Generation accepts bounded version-1 diagram specifications and retries invalid output before persistence. Section normalization, generation cache keys, assessment prompts and review snapshots preserve diagrams. See `docs/QUESTION_CONTENT.md`; existing JSON storage needs no migration.
+
+## Missing PostgreSQL migrations at startup
+
+## Active API
+The backend serves Study and marketplace routes only. Startup no longer requires retired pipeline migrations or seeds feed fixtures. Run `backend.ps1 migrate` using an owner credential to apply the one-time `0006_retire_portal.sql` cleanup on existing installations. Limited runtime credentials cannot drop owner-managed tables.
+
+## Paper generation jobs
+`POST /v1/study/generation-jobs` queues a validated brief and returns 202. `GET /v1/study/generation-jobs/{id}?user_id=...` returns queued/generating/ready/failed and requires the shared secret. Next.js supplies the signed-in user ID. A lifespan worker processes one generation at a time per API process, with a 240-second execution budget and 300-second recovery lease. Deploy the backend before the frontend; retain the synchronous paper endpoint for existing clients.
+Jobs use existing `generated_papers` columns, so no owner migration is needed. They stay out of paper readers, archives and assessment until status becomes generated. Graceful shutdown releases claims; a crash leaves a lease that can be reclaimed. Completed output replaces the queued brief at the same ID. Failed records remain private for diagnosis; logs include exception types without provider credentials or student content.
+
+## Board mock draft lifecycle
+Board profiles are versioned in board_profiles.py. Only CBSE 2026–27 Maths (041) at X Standard / XII is supported. Queue admission checks complete source coverage. Board jobs have a 900-second model budget and a 960-second crash recovery lease; the planner polls for up to 20 minutes. They reuse existing paper JSON storage, with no schema migration. Completed paper JSON retains source hashes/chunk offsets, private worked solutions and per-step marking. Public paper/history responses redact grading fields recursively. Submission binds structured OR choices to one selected rubric and carries case-study parts into assessment. Formative scores remain model reviews.
+
+Operator export: `python backend/scripts/export_board_review.py --paper-id ID --user-id OWNER --output work/review.json`. This reads a private local/operator database and includes answer material; it is not a student download. Have an educator inspect complete papers, keys, subparts, alternatives, figures and timing. The export never changes review status. No reviewed or official-exam claim is made before that human work.

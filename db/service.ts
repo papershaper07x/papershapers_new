@@ -70,12 +70,8 @@ export async function createUser(input: { name: string; email: string; passwordH
   await db.batch([
     db.prepare("INSERT INTO users (id, name, email, password_hash, password_salt, created_at) VALUES (?, ?, ?, ?, ?, ?)")
       .bind(id, input.name, input.email, input.passwordHash, input.passwordSalt, now),
-    db.prepare("INSERT INTO user_preferences (user_id, news_topics, marketplace_interests, marketplace_area, updated_at) VALUES (?, ?, ?, ?, ?)")
-      .bind(id, JSON.stringify(["India", "Policy", "Science"]), JSON.stringify(["Food", "Events", "Classes"]), "Indiranagar", now),
     db.prepare("INSERT INTO study_requests (id, user_id, subject, grade, focus, status, is_demo, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)")
       .bind(crypto.randomUUID(), id, "Mathematics", "10", "Exam practice", "Sample brief", now),
-    db.prepare("INSERT INTO saved_items (id, user_id, portal, item_key, title, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-      .bind(crypto.randomUUID(), id, "news", "sample-mobility", "The urban mobility briefing", JSON.stringify({ lens: "Centre brief", demo: true }), now),
     db.prepare("INSERT INTO saved_items (id, user_id, portal, item_key, title, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
       .bind(crypto.randomUUID(), id, "marketplace", "sample-pottery", "Weekend pottery circle", JSON.stringify({ area: "Ulsoor", demo: true }), now),
   ]);
@@ -144,36 +140,40 @@ export async function getStudyRequests(userId: string) {
 
 export async function getPreferences(userId: string) {
   const db = await ensureDatabase();
-  const row = await db.prepare("SELECT news_topics, marketplace_interests, marketplace_area FROM user_preferences WHERE user_id = ?")
-    .bind(userId).first<{ news_topics: string; marketplace_interests: string; marketplace_area: string }>();
+  // New preferences use a reserved marketplace metadata record. Reading the
+  // original market columns keeps existing accounts compatible before cleanup.
+  const current = await db.prepare("SELECT metadata FROM saved_items WHERE user_id = ? AND portal = 'marketplace' AND item_key = '__preferences__'")
+    .bind(userId).first<{ metadata: string }>();
+  if (current) {
+    const values = JSON.parse(current.metadata) as { interests: string[]; area: string };
+    return { marketplaceInterests: values.interests, marketplaceArea: values.area };
+  }
+  const row = await db.prepare("SELECT marketplace_interests, marketplace_area FROM user_preferences WHERE user_id = ?")
+    .bind(userId).first<{ marketplace_interests: string; marketplace_area: string }>();
   return {
-    newsTopics: JSON.parse(row?.news_topics ?? "[]") as string[],
-    marketplaceInterests: JSON.parse(row?.marketplace_interests ?? "[]") as string[],
+    marketplaceInterests: JSON.parse(row?.marketplace_interests ?? '["Food","Events","Classes"]') as string[],
     marketplaceArea: row?.marketplace_area ?? "Indiranagar",
   };
 }
 
-export async function updatePreferences(userId: string, portal: "news" | "marketplace", values: string[], area?: string) {
+export async function updatePreferences(userId: string, _portal: "marketplace", values: string[], area?: string) {
   const db = await ensureDatabase();
-  const column = portal === "news" ? "news_topics" : "marketplace_interests";
-  const safeArea = area?.trim().slice(0, 80);
-  if (portal === "marketplace" && safeArea) {
-    await db.prepare(`UPDATE user_preferences SET ${column} = ?, marketplace_area = ?, updated_at = ? WHERE user_id = ?`)
-      .bind(JSON.stringify(values), safeArea, new Date().toISOString(), userId).run();
-  } else {
-    await db.prepare(`UPDATE user_preferences SET ${column} = ?, updated_at = ? WHERE user_id = ?`)
-      .bind(JSON.stringify(values), new Date().toISOString(), userId).run();
-  }
+  const previous = await getPreferences(userId);
+  const metadata = { interests: values, area: area?.trim().slice(0, 80) || previous.marketplaceArea };
+  await db.prepare(`INSERT INTO saved_items (id, user_id, portal, item_key, title, metadata, created_at)
+    VALUES (?, ?, 'marketplace', '__preferences__', 'Local preferences', ?, ?)
+    ON CONFLICT (user_id, portal, item_key) DO UPDATE SET metadata = excluded.metadata`)
+    .bind(crypto.randomUUID(), userId, JSON.stringify(metadata), new Date().toISOString()).run();
 }
 
-export async function getSavedItems(userId: string, portal: "news" | "marketplace") {
+export async function getSavedItems(userId: string, portal: "marketplace") {
   const db = await ensureDatabase();
-  const result = await db.prepare("SELECT id, portal, item_key, title, metadata, created_at FROM saved_items WHERE user_id = ? AND portal = ? ORDER BY created_at DESC LIMIT 12")
+  const result = await db.prepare("SELECT id, portal, item_key, title, metadata, created_at FROM saved_items WHERE user_id = ? AND portal = ? AND item_key <> '__preferences__' ORDER BY created_at DESC LIMIT 12")
     .bind(userId, portal).all<SavedItem>();
   return result.results;
 }
 
-export async function saveItem(userId: string, portal: "news" | "marketplace", itemKey: string, title: string, metadata: Record<string, unknown>) {
+export async function saveItem(userId: string, portal: "marketplace", itemKey: string, title: string, metadata: Record<string, unknown>) {
   const db = await ensureDatabase();
   await db.prepare("INSERT OR IGNORE INTO saved_items (id, user_id, portal, item_key, title, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
     .bind(crypto.randomUUID(), userId, portal, itemKey.slice(0, 100), title.slice(0, 180), JSON.stringify(metadata), new Date().toISOString()).run();

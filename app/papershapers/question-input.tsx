@@ -31,7 +31,7 @@ export function parseQuestionOptions(question: StudyQuestion): { promptText: str
   return { promptText: text, options: [] };
 }
 
-export function QuestionInput({
+function SimpleQuestionInput({
   question,
   value,
   onChange,
@@ -169,4 +169,19 @@ export function QuestionInput({
       )}
     </article>
   );
+}
+
+export function QuestionInput({ question, value, onChange }: { question: StudyQuestion; value: string; onChange: (value: string) => void }) {
+  if (!question.parts?.length && !question.alternative) return <SimpleQuestionInput question={question} value={value} onChange={onChange} />;
+  let saved: { selection: string; answer: string; parts: string[] } = { selection: "primary", answer: "", parts: [] };
+  try { if (value) saved = { ...saved, ...JSON.parse(value) }; } catch { saved.answer = value; }
+  function update(next: Partial<typeof saved>) {
+    const current = { ...saved, ...next };
+    onChange(JSON.stringify(current));
+  }
+  const selected = saved.selection === "alternative" && question.alternative ? { ...question, ...question.alternative, parts: undefined, alternative: undefined } : { ...question, alternative: undefined };
+  return <section className="exam-compound" id={question.parts?.length ? `question-${question.id}` : undefined}>
+    {question.alternative && <fieldset className="exam-choice"><legend>{question.id} · Answer one option</legend>{["primary", "alternative"].map(selection => <button key={selection} type="button" aria-pressed={saved.selection === selection} onClick={() => onChange(JSON.stringify({ selection, answer: "", parts: [] }))}>{selection === "primary" ? "First question" : "OR question"}</button>)}</fieldset>}
+    {selected.parts?.length ? <><header><strong>{question.id} · Case study · {question.marks} marks</strong><PracticeContent text={selected.text} diagram={selected.diagram} /></header>{selected.parts.map((part, index) => <QuestionInput key={index} question={{ ...question, ...part, id: `${question.id}(${String.fromCharCode(97 + index)})`, type: "constructed-response", parts: undefined }} value={saved.parts[index] ?? ""} onChange={answer => { const parts = [...saved.parts]; parts[index] = answer; update({ parts }); }} />)}</> : <SimpleQuestionInput question={selected} value={saved.answer} onChange={answer => update({ answer })} />}
+  </section>;
 }

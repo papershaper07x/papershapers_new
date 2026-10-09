@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import hmac
+import asyncio
 import logging
 import sys
 from contextlib import asynccontextmanager
-from pathlib import Path
+from contextlib import suppress
 
 # Configure logging for standard output (essential for Render visibility)
 logging.basicConfig(
@@ -21,10 +22,10 @@ from .config import Settings
 from .database import Database
 from .llm_router import GenerationUnavailableError, LLMRouter
 from .marketplace import list_listings, seed_listings
-from .news import analyze_article, ingest_feeds, ingest_fixture, list_articles
-from .schemas import NewsAnalysisRequest, NewsBatchRequest, StudyAttemptRequest, StudyPaperFeedbackRequest, StudyPaperRequest
-from .study import generate_paper, get_attempt, get_paper, list_papers, submit_attempt, submit_paper_feedback
+from .schemas import StudyAttemptRequest, StudyPaperFeedbackRequest, StudyPaperRequest
+from .study import generate_paper, get_attempt, get_paper, list_papers, submit_attempt, submit_paper_feedback, student_paper
 from .curriculum import catalog
+from .study_jobs import enqueue, job_status, worker
 
 settings = Settings.from_env()
 database = Database(settings.db_path, settings.database_url)
@@ -35,10 +36,13 @@ router = LLMRouter(settings)
 async def lifespan(_: FastAPI):
     database.initialize()
     seed_listings(database)
-    fixture = Path(__file__).parents[1] / "fixtures" / "news.json"
-    if not list_articles(database, limit=1) and fixture.exists():
-        ingest_fixture(database, fixture)
-    yield
+    task = asyncio.create_task(worker(database, router))
+    try:
+        yield
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):
+            await task
 
 
 app = FastAPI(title="Paper Shapers local backend", version="0.1.0", lifespan=lifespan)
@@ -83,17 +87,33 @@ def study_catalog() -> dict:
 @app.post("/v1/study/papers", dependencies=[Depends(require_write_access)])
 async def create_study_paper(request: StudyPaperRequest) -> dict:
     try:
-        return {"paper": await generate_paper(database, router, request)}
+        return {"paper": student_paper(await generate_paper(database, router, request))}
     except GenerationUnavailableError as error:
         raise HTTPException(status_code=503, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
+@app.post("/v1/study/generation-jobs", status_code=202, dependencies=[Depends(require_write_access)])
+def start_generation(request: StudyPaperRequest) -> dict:
+    try:
+        return {"job": enqueue(database, router, request)}
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.get("/v1/study/generation-jobs/{job_id}", dependencies=[Depends(require_write_access)])
+def generation_status(job_id: str, user_id: str = Query(min_length=1, max_length=100)) -> dict:
+    job = job_status(database, job_id, user_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Generation job not found")
+    return {"job": job}
+
+
 @app.get("/v1/study/papers", dependencies=[Depends(require_write_access)])
 def study_history(user_id: str = Query(min_length=1, max_length=100), limit: int = Query(default=20, ge=1, le=50), offset: int = Query(default=0, ge=0, le=10_000)) -> dict:
     items = list_papers(database, user_id, limit + 1, offset, include_mock=settings.allow_mock_fallback)
-    return {"items": items[:limit], "has_more": len(items) > limit}
+    return {"items": student_paper(items[:limit]), "has_more": len(items) > limit}
 
 
 @app.get("/v1/study/papers/{paper_id}", dependencies=[Depends(require_write_access)])
@@ -101,7 +121,7 @@ def study_paper(paper_id: str, user_id: str = Query(min_length=1, max_length=100
     paper = get_paper(database, paper_id, user_id, include_mock=settings.allow_mock_fallback)
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return {"paper": paper}
+    return {"paper": student_paper(paper)}
 
 
 @app.post("/v1/study/papers/{paper_id}/attempts", dependencies=[Depends(require_write_access)])
@@ -130,27 +150,6 @@ def study_attempt_result(paper_id: str, attempt_id: str, user_id: str = Query(mi
     if attempt is None:
         raise HTTPException(status_code=404, detail="Attempt not found")
     return {"attempt": attempt}
-
-
-@app.get("/v1/news/articles")
-def news_articles(limit: int = Query(default=20, ge=1, le=50), category: str | None = None) -> dict:
-    return {"items": list_articles(database, limit, category)}
-
-
-@app.post("/v1/news/analyze", dependencies=[Depends(require_write_access)])
-async def news_analyze(request: NewsAnalysisRequest) -> dict:
-    analysis = await analyze_article(database, router, request.article_id)
-    if analysis is None:
-        raise HTTPException(status_code=404, detail="Article not found")
-    return {"analysis": analysis}
-
-
-@app.post("/v1/news/batch", dependencies=[Depends(require_write_access)])
-def news_batch(request: NewsBatchRequest) -> dict:
-    fixture = Path(__file__).parents[1] / "fixtures" / "news.json"
-    feeds = request.feeds or list(settings.news_rss_feeds)
-    inserted = ingest_fixture(database, fixture) if request.use_fixture or not feeds else ingest_feeds(database, feeds)
-    return {"inserted": inserted, "mode": "fixture" if request.use_fixture or not feeds else "rss"}
 
 
 @app.get("/v1/marketplace/listings")

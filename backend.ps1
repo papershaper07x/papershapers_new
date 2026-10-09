@@ -1,5 +1,5 @@
 param(
-  [ValidateSet("setup", "run", "test", "batch", "health")]
+  [ValidateSet("setup", "run", "test", "health", "migrate")]
   [string]$Command = "run"
 )
 
@@ -26,6 +26,6 @@ switch ($Command) {
   }
   "run" { Invoke-Python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload }
   "test" { Invoke-Python -m unittest discover -s backend\tests -v }
-  "batch" { Invoke-Python -m backend.scripts.run_news_batch --fixture }
+  "migrate" { Invoke-Python -m backend.scripts.migrate_database }
   "health" { Invoke-RestMethod -Uri "http://127.0.0.1:8000/health" | ConvertTo-Json -Depth 8 }
 }

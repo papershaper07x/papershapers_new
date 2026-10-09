@@ -6,13 +6,11 @@ This file is the short hand-off for the current repository. It records what is l
 the code, how the local and hosted pieces fit together, what was deliberately removed,
 and what still blocks a production launch.
 
-Paper Shapers is an umbrella for small, practical digital products. This repository contains one deployable application with three deliberately independent product experiences:
+Paper Shapers is an umbrella for small, practical digital products. This repository contains one deployable application with two deliberately independent product experiences:
 
 - **Study** (`/papershapers`, future `learn.papershapers.in`) — focused CBSE practice, private paper briefs, and study history.
-- **Perspective** (`/perspective`, future `news.papershapers.in`) — one news story viewed through clearly labelled political lenses, with saved reading and topic preferences.
 - **Nearby Marketplace** (`/noticeboard`, future `nearby.papershapers.in`) — fresh posts from nearby shops, services, events, and communities, with area and interest preferences.
 
-The current release includes a working local account system, HTTP-only sessions, shared PostgreSQL persistence, portal dashboards, stored preferences, and a separate Python backend. Study papers use the supplied local Paper Shapers curriculum source and fail clearly instead of saving a template when no configured model returns a valid result. The required curriculum input is local-only at `data/study-source/` and intentionally excluded from Git. The backend also stores attempts, returns formative feedback, ingests/analyzes news, and ranks illustrative marketplace listings. Study includes teacher-hosted Live Rooms with student waiting-room polling and live response tracking (`/papershapers/for-teachers/rooms` and `/papershapers/room`), a non-agentic rule-based guide for common student and educator questions, browser-native print/save-to-PDF for generated papers, private paper-feedback capture, a moderated Journal, and a personal dedication page. Feedback is held for human product review and does not automatically influence learner marks, paper prompts, or model training. Editorial review, business verification, and production moderation remain later phases.
 
 ## Current release and decisions
 
@@ -22,7 +20,6 @@ The current release includes a working local account system, HTTP-only sessions,
 - Google OAuth, password sessions, paper generation, attempts, feedback, teacher rooms, Journal moderation, and portal navigation are implemented. OAuth stays disabled until the exact callback URI is configured.
 - Render may sleep, Neon may scale to zero, neither has an SLA or guaranteed backups, and Render storage is ephemeral.
 
-During migration, the newspaper/marketplace/reference apps were isolated from the active product. `scripts/migrate_sqlite_to_postgres.py` copies reviewed local records idempotently in dependency order; orphan rows are reported and skipped. Netlify was corrected to use `.next` output and `@netlify/plugin-nextjs`; publishing the repository root as static files caused the earlier generic 404.
 
 **Recent Deployment Updates:**
 - The local `curriculum_store.sqlite` file is now tracked in Git (removed from `.gitignore`) so that the Render backend deployment has access to the NCERT syllabus data, resolving the "installed curriculum source is unavailable" error on production.
@@ -55,6 +52,7 @@ npm test
 
 See [RUNBOOK.md](RUNBOOK.md) for every supported local command and troubleshooting notes.
 
+
 Before generating a paper in a fresh clone, restore the approved local curriculum CSV and `instructions.csv` under `data/study-source/`. These source inputs, downloaded NCERT PDFs, generated SQLite/JSON stores, old reference applications, and local environment files are deliberately ignored so they cannot be committed by accident.
 
 The web application now runs on standard Next.js and uses PostgreSQL through `DATABASE_URL`; the former D1 schema remains only as migration history while parity is verified. The selected production target is Netlify (web), Render (FastAPI), and Neon (PostgreSQL). Local PostgreSQL and SQLite fallback tests remain available. See [the deployment runbook](docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md). No paid authentication provider is required.
@@ -67,7 +65,6 @@ Apply `npm run db:migrate:postgres` before the first account request. Password s
 | --- | --- | --- | --- |
 | Study (Self-practice) | Product explanation and paper options | Required before a paper brief is stored or generated | `/papershapers/dashboard` |
 | Study (Live Rooms) | Room entry landing page (`/papershapers/room`) and student attempts via scoped session cookie | Required for teachers to host rooms; account-free for student attendees | `/papershapers/for-teachers/rooms` |
-| Perspective | Full public briefing and lens comparison | Optional nudge for saving and personalisation | `/perspective/dashboard` |
 | Nearby | Full public browsing and filtering | Optional for saving; required for posting | `/noticeboard/dashboard` |
 
 One session can work across `*.papershapers.in` after the final cookie domain is configured. Passwords are salted with a unique random value and derived with PBKDF2-SHA-256. Raw passwords and session tokens are never stored.
@@ -80,7 +77,6 @@ The Worker performs an internal hostname rewrite rather than a browser redirect:
 | --- | --- |
 | `papershapers.in` | `/` |
 | `learn.papershapers.in` | `/papershapers` |
-| `news.papershapers.in` | `/perspective` |
 | `nearby.papershapers.in` | `/noticeboard` |
 
 Set these build-time values when custom domains are ready so cross-product navigation also uses subdomains:
@@ -88,11 +84,9 @@ Set these build-time values when custom domains are ready so cross-product navig
 ```dotenv
 NEXT_PUBLIC_HOME_ORIGIN=https://papershapers.in
 NEXT_PUBLIC_STUDY_ORIGIN=https://learn.papershapers.in
-NEXT_PUBLIC_NEWS_ORIGIN=https://news.papershapers.in
 NEXT_PUBLIC_MARKET_ORIGIN=https://nearby.papershapers.in
 ```
 
-During local development the fallback URLs remain `/papershapers`, `/perspective`, and `/noticeboard`, so no hosts-file changes are needed.
 
 ## Repository map
 
@@ -102,13 +96,11 @@ app/
   api/                 auth, preferences, moderated-community, saved-item, and study request endpoints
   auth/                shared account entry
   papershapers/        education portal, paper, attempt, teacher live room, and student room routes
-  perspective/         news comparison portal and its product README
   noticeboard/         local discovery portal and its product README
   globals.css          shared visual system and responsive rules
 backend/
   app/                 FastAPI routes, SQLite test adapter, curriculum and model router
   Dockerfile           Render container boundary (after Postgres migration)
-  fixtures/            offline illustrative news input
   tests/               backend integration tests
   README.md            backend configuration and API contract
 docs/
@@ -140,7 +132,6 @@ local-reference-archive/ ignored legacy/reference applications
 1. **One deployable, multiple bounded products.** This makes the first release inexpensive and easy to maintain. Each portal keeps its own route, UI identity, dashboard, and data boundary and can later be extracted without redesigning it.
 2. **Stable URLs and portal boundaries.** Production may map subdomains at Netlify/Cloudflare; local development uses stable path routes. No portal depends on hidden client state from another portal.
 3. **Server components by default.** Interactive islands are small client components. This limits shipped JavaScript and keeps content fast on low-end mobile devices.
-4. **Shared accessibility, distinct product voices.** Study uses a navy-and-gold academic workbench, Perspective uses an editorial reading room, and Nearby uses a bright location-first marketplace. They no longer share a generic card language.
 5. **Replaceable backend adapters.** The Python service uses SQLite only for offline tests and shared Neon PostgreSQL in Render. Its explicit server-side Gemini/Groq/NVIDIA NIM sequence, owner-scoped contracts, and expiry-bound identity-free recovery cache remain behind authenticated Netlify server routes; credentials never reach the browser.
 
 Full architecture and rollout details live in [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md). The interaction model and responsive behaviour are documented in [docs/UI_UX_GUIDE.md](docs/UI_UX_GUIDE.md).
@@ -193,3 +184,15 @@ Useful references: [RUNBOOK.md](RUNBOOK.md), [launch readiness](docs/LAUNCH_READ
 ## Student hardening release — 9 October 2026
 
 See [the student production audit](docs/STUDENT_PLATFORM_AUDIT.md) for confirmed bugs, shipped fixes, competitor references, remaining launch gates, and deployment verification. Frontend `/api/release` and backend `/version` expose the deployed source commit. When `REQUEST_LIMITS_ENABLED=true`, Netlify prebuild applies the additive `0005_request_limits.sql`; set `MIGRATION_DATABASE_URL` if the runtime role cannot create tables or grant access. Limits default off until the migration and grants are installed; enable them before unrestricted public traffic. Optional Clarity recording is disabled pending consent/privacy work.
+
+The CBSE-referenced paper-quality audit and ordered implementation backlog are in `docs/CBSE_PAPER_QUALITY_AUDIT.md`. This distinguishes structural guarantees from historical model-content findings and proposed educational benchmarks.
+
+For local backend startup errors about unapplied PostgreSQL migrations, configure the owner-only `MIGRATION_DATABASE_URL` in `backend/.env` and run `powershell -ExecutionPolicy Bypass -File .\backend.ps1 migrate` before restarting. See the backend README.
+
+## Active products
+Study and Noticeboard are the two active portals. Retired routes, jobs, fixtures and configuration have been deleted. Existing database cleanup is provided by `database/migrations/0006_retire_portal.sql`; run `backend.ps1 migrate` with the owner credential to remove obsolete stored tables, columns and saved records. Startup requires only the initial core schema. New marketplace preferences use a reserved metadata record in saved items, with read compatibility for older marketplace preferences, so signup and preference updates do not depend on a retired column or on owner access.
+
+### Generation timeout recovery
+Deploy the backend job endpoints/worker before the frontend polling flow. Generation starts with HTTP 202; status polling eventually reports ready and opens the stored paper. Check ownership boundaries and /api/release plus backend /version. A 504 screenshot establishes a gateway timeout, not which hop timed out; inspect hosting logs to locate the cutoff. The new flow avoids holding a web function open during model generation. No database migration or paid queue service is required.
+
+Board mock drafts now cover CBSE 2026–27 Class 10 Mathematics Standard and Class 12 Mathematics (041). See the Study README for scope and official source links, and the backend README for private educator-review export. These drafts still need human review before credibility claims; no approval flag is automatically set.

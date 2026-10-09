@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function PreferencePicker({ portal, options, initial, area }: { portal: "news" | "marketplace"; options: string[]; initial: string[]; area?: string }) {
+export function PreferencePicker({ portal, options, initial, area }: { portal: "marketplace"; options: string[]; initial: string[]; area?: string }) {
   const [selected, setSelected] = useState(initial);
   const [localArea, setLocalArea] = useState(area ?? "");
   const [status, setStatus] = useState("");

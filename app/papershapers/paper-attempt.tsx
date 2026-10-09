@@ -1,4 +1,5 @@
 "use client";
+import { hasAttemptAnswer } from "./has-attempt-answer";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -22,7 +23,7 @@ export function PaperAttempt({ paperId }: { paperId: string }) {
       setRecord(result.paper);
     }).catch((reason: Error) => setError(reason.message));
   }, [paperId]);
-  const answered = useMemo(() => Object.values(answers).filter((answer) => answer.trim()).length, [answers]);
+  const answered = useMemo(() => Object.values(answers).filter(hasAttemptAnswer).length, [answers]);
   const remainingTime = `${String(Math.floor((secondsLeft ?? 0) / 60)).padStart(2, "0")}:${String((secondsLeft ?? 0) % 60).padStart(2, "0")}`;
   async function submit() {
     if (!record || submitting) return;

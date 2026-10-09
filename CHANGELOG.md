@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-03
+
+- Kept markets visibly unconfigured rather than fabricating live prices, and documented the source-licence requirement for reused, transformed, or commercial publisher content.
+- Added an audited CLI transition for explicitly publishing one non-sensitive candidate during local editorial review.
+
 ## 2026-10-02
 
 ### Architecture and Anti-Slop Refactoring
@@ -35,7 +40,6 @@ Meaningful repository changes are recorded here so the implementation, product n
 - Hardened Study paper access: anonymous visitors are redirected to sign-in from paper, attempt, and result URLs; same-origin APIs already reject anonymous requests; and the local backend now fails closed unless its server-to-server shared secret is configured.
 - Rebuilt generated-paper question rows into stacked, responsive reading blocks so long section and chapter labels no longer squeeze or split the question text.
 - Added linked request-history rows and a paginated private paper archive. The dashboard now shows the four newest papers without hiding older records, and new briefs retain the exact generated-paper ID for a safe reopen link.
-- Quarantined the imported News/Newspaper/reference applications under an ignored local archive, moved the active local curriculum inputs to `data/study-source/`, and excluded generated curriculum files and packaging output from Git.
 
 ## 2026-09-29
 
@@ -111,21 +115,14 @@ Meaningful repository changes are recorded here so the implementation, product n
 
 ### Configurable local backend
 
-- Audited the imported news batch/inference and study-generation projects; quarantined them as reference-only because they contain embedded credentials, duplicated services, and heavyweight mandatory dependencies.
-- Added FastAPI + SQLite vertical slices for full/half study generation, normalized news ingestion and three-lens analysis, and interest/area-ranked illustrative marketplace listings.
 - Added a server-side generation boundary with Gemini and a deterministic test-only fallback, without exposing keys to the browser.
-- Connected each portal through same-origin web API proxies, preserving mandatory Study authentication and public News/Marketplace browsing.
 - Added backend tests, Windows setup/run/batch/health commands, configuration examples, an audit report, and deployment migration guidance.
 
 ### Portal separation, identity, and dashboards
 
-- Reworked the three portal identities: an academic workbench for Study, an editorial reading room for Perspective, and a location-first marketplace for Nearby.
-- Added hostname-aware Worker rewrites for `learn`, `news`, and `nearby` subdomains without browser redirects.
 - Added a shared sign-up/login/logout flow with PBKDF2 password derivation, hashed session tokens, HTTP-only cookies, and cross-subdomain cookie support.
 - Added Cloudflare D1/Miniflare storage with users, sessions, study requests, user preferences, and saved-item tables plus a generated migration.
-- Made authentication mandatory when creating a study brief while keeping news and marketplace browsing public.
 - Added a private, database-backed dashboard for each portal and clearly labelled sample cold-start records.
-- Added optional account nudges for Perspective and Nearby, stored study briefs, saved news/local items, and editable portal interests.
 - Documented the free-tier Cloudflare Workers + D1 recommendation, local database flow, custom-domain setup, and future Netlify/Firebase tradeoff.
 
 ### Local handoff
@@ -138,7 +135,6 @@ Meaningful repository changes are recorded here so the implementation, product n
 ### Initial multi-portal release
 
 - Added the Paper Shapers umbrella home.
-- Added Study Lab, Perspective, and Noticeboard as distinct product routes with a shared brand baseline.
 - Added responsive behaviour, focused client interactions, structural tests, and high-level system design.
 
 ## 2026-10-09 — Student platform production hardening
@@ -153,3 +149,28 @@ Meaningful repository changes are recorded here so the implementation, product n
 ### Scientific question content
 - Added validated structured circuit, uniform-field and flow diagrams across question reading, attempts, Live Rooms, review and printing; enabled chemical equation notation using existing KaTeX.
 - Preserved diagram data through normalization, caching and assessment; added notation and diagram contract regressions.
+
+### CBSE paper-quality audit
+- Documented official sample-paper comparisons, historical local output findings, source/guidance gaps, and ordered assessment-quality work in `docs/CBSE_PAPER_QUALITY_AUDIT.md`; generator behavior is unchanged.
+
+### Local backend migration recovery
+- Added an explicit owner-credential migration command and actionable startup errors for missing PostgreSQL schema versions; retained least-privilege runtime configuration.
+
+### Portal retirement
+- Removed the unused reading portal, API, workers, fixtures, styles, configuration, legacy archives and obsolete dependency. Study and Noticeboard remain.
+- Added an owner-run storage cleanup migration and compatible marketplace preference persistence; removed obsolete startup schema requirements.
+
+### Study interface refinement
+- Reworked the planner into five labelled steps with accessible selection states, readable chapter labels, a live paper summary, and inline generation progress.
+- Simplified Study copy and paper actions; added consistent local SVG icons and balanced text wrapping. Full papers remain labelled chapter practice until board profiles are verified.
+
+### Production generation timeouts
+- Move planner generation to durable backend jobs with short web requests and owner-scoped polling; recover interrupted claims and keep unfinished jobs out of paper/assessment routes.
+- Handle HTML gateway errors safely, preserve legacy synchronous responses during deployment overlap, and add job lifecycle/response regressions.
+
+### Board mock drafts
+- Added separate 2026–27 CBSE Class 10 Standard / Class 12 Mathematics profiles, exact slots/unit marks, full-source checks, grouped generation and bounded repairs.
+- Added model solve/check verification, OR/subpart controls, bounded mathematical schematics and exam-style reader/printing. Keep drafts labelled pending educator review; protect answer keys and provide operator review export.
+- Aligned the installed Next.js lint configuration with Next 16 after finding a mismatched Next 14 configuration.
+
+- Fixed board-reader overflow on small screens, removed site navigation from printed papers, and corrected the plot prompt example to satisfy its bounded diagram contract.

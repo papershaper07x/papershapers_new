@@ -13,8 +13,6 @@ CREATE INDEX IF NOT EXISTS generated_papers_user_idx ON generated_papers(user_id
 CREATE TABLE IF NOT EXISTS generated_paper_cache (generation_key TEXT PRIMARY KEY, provider TEXT NOT NULL, paper_json TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS paper_attempts (id TEXT PRIMARY KEY, paper_id TEXT NOT NULL, user_id TEXT NOT NULL, status TEXT NOT NULL, provider TEXT NOT NULL, answers_json TEXT NOT NULL, score_json TEXT NOT NULL, started_at TEXT NOT NULL, submitted_at TEXT NOT NULL, FOREIGN KEY (paper_id) REFERENCES generated_papers(id) ON DELETE CASCADE);
 CREATE TABLE IF NOT EXISTS paper_feedback (id TEXT PRIMARY KEY, paper_id TEXT NOT NULL, user_id TEXT NOT NULL, category TEXT NOT NULL, comment TEXT NOT NULL, created_at TEXT NOT NULL, FOREIGN KEY (paper_id) REFERENCES generated_papers(id) ON DELETE CASCADE);
-CREATE TABLE IF NOT EXISTS news_articles (id TEXT PRIMARY KEY, canonical_url TEXT NOT NULL UNIQUE, title TEXT NOT NULL, source TEXT NOT NULL, summary TEXT NOT NULL, body TEXT NOT NULL, category TEXT NOT NULL, image_url TEXT, published_at TEXT NOT NULL, ingested_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS news_perspectives (id TEXT PRIMARY KEY, article_id TEXT NOT NULL, provider TEXT NOT NULL, analysis_json TEXT NOT NULL, created_at TEXT NOT NULL, FOREIGN KEY (article_id) REFERENCES news_articles(id) ON DELETE CASCADE);
 CREATE TABLE IF NOT EXISTS marketplace_listings (id TEXT PRIMARY KEY, title TEXT NOT NULL, place TEXT NOT NULL, area TEXT NOT NULL, category TEXT NOT NULL, description TEXT NOT NULL, price_label TEXT, expires_at TEXT NOT NULL, verified INTEGER NOT NULL DEFAULT 0, metadata_json TEXT NOT NULL, created_at TEXT NOT NULL);
 """
 
@@ -74,9 +72,10 @@ class Database:
     def initialize(self) -> None:
         if self.database_url:
             with self.connect() as db:
-                row = db.execute("SELECT version FROM schema_migrations WHERE version = ?", ("0001_initial",)).fetchone()
-                if not row:
-                    raise RuntimeError("PostgreSQL migrations have not been applied")
+                for version in ("0001_initial",):
+                    row = db.execute("SELECT version FROM schema_migrations WHERE version = ?", (version,)).fetchone()
+                    if not row:
+                        raise RuntimeError(f"PostgreSQL migration {version} has not been applied. Configure MIGRATION_DATABASE_URL in backend/.env with the database owner credential, then run: powershell -ExecutionPolicy Bypass -File .\\backend.ps1 migrate. Keep DATABASE_URL as the runtime role.")
             return
         with self.connect() as db:
             db.executescript(SQLITE_SCHEMA)

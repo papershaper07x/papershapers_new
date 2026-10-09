@@ -17,6 +17,7 @@ export function QuestionDiagram({ diagram }: { diagram?: StudyDiagram | null }) 
   const id = useId();
   if (!diagram || diagram.version !== 1) return null;
   const valid = typeof diagram.description === "string" && diagram.description.length <= 160 && (
+    diagram.kind === "plot" ? Array.isArray(diagram.points) && diagram.points.length >= 2 && diagram.points.length <= 24 && diagram.points.every(p => p && typeof p.id === "string" && typeof p.label === "string" && p.label.length <= 48 && Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 20 && p.x <= 580 && p.y >= 20 && p.y <= 260) && Array.isArray(diagram.lines) && diagram.lines.length <= 24 && diagram.lines.every(e => e && diagram.points.some(p => p.id === e.from) && diagram.points.some(p => p.id === e.to)) :
     diagram.kind === "circuit" ? ["series", "parallel"].includes(diagram.layout) && typeof diagram.source_label === "string" && diagram.source_label.length <= 48 && Array.isArray(diagram.components) && diagram.components.length > 0 && diagram.components.length <= 4 && diagram.components.every(c => c && ["resistor", "capacitor"].includes(c.kind) && typeof c.label === "string" && c.label.length <= 48) :
     diagram.kind === "uniform-field" ? ["left", "right"].includes(diagram.direction) && typeof diagram.left_label === "string" && typeof diagram.right_label === "string" && diagram.left_label.length <= 48 && diagram.right_label.length <= 48 :
     diagram.kind === "flow" && Array.isArray(diagram.nodes) && diagram.nodes.length > 0 && diagram.nodes.length <= 6 && diagram.nodes.every(n => n && typeof n.id === "string" && typeof n.label === "string" && n.label.length <= 48) && Array.isArray(diagram.edges) && diagram.edges.length <= 8 && diagram.edges.every(e => e && diagram.nodes.some(n => n.id === e.from) && diagram.nodes.some(n => n.id === e.to))
@@ -25,10 +26,14 @@ export function QuestionDiagram({ diagram }: { diagram?: StudyDiagram | null }) 
   const height = diagram.kind === "flow" ? 90 + diagram.nodes.length * 80 : diagram.kind === "circuit" && diagram.layout === "parallel" ? 140 + diagram.components.length * 70 : 280;
   return <figure className="question-diagram">
     <svg viewBox={`0 0 600 ${height}`} role="img" aria-labelledby={`${id}-title ${id}-desc`}>
-      <title id={`${id}-title`}>{diagram.kind === "circuit" ? "Circuit diagram" : diagram.kind === "flow" ? "Relationship diagram" : "Uniform electric field"}</title>
+      <title id={`${id}-title`}>{diagram.kind === "plot" ? "Mathematical schematic" : diagram.kind === "circuit" ? "Circuit diagram" : diagram.kind === "flow" ? "Relationship diagram" : "Uniform electric field"}</title>
       <desc id={`${id}-desc`}>{diagram.description}</desc>
       <defs><marker id={`${id}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="currentColor" stroke="none" /></marker></defs>
       <g fill="none" stroke="currentColor" strokeWidth="2">
+        {diagram.kind === "plot" && <>
+          {diagram.lines.map((line, i) => { const from = diagram.points.find(p => p.id === line.from)!; const to = diagram.points.find(p => p.id === line.to)!; return <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y} />; })}
+          {diagram.points.map(point => <g key={point.id}><circle cx={point.x} cy={point.y} r="3" fill="currentColor" /><DiagramLabel x={point.x} y={point.y - 18} text={point.label} /></g>)}
+        </>}
         {diagram.kind === "circuit" && <>
           <path d="M65 70V35H535V70M65 35V80m0 40v30" />
           <path d="M43 80h44M52 120h26" />

@@ -1,10 +1,13 @@
 export type StudyDiagram = { version: 1; description: string } & (
+  | { kind: "plot"; points: Array<{id: string; label: string; x: number; y: number}>; lines: Array<{from: string; to: string}> }
   | { kind: "circuit"; layout: "series" | "parallel"; source_label: string; components: Array<{kind: "resistor" | "capacitor"; label: string}> }
   | { kind: "uniform-field"; direction: "left" | "right"; left_label: string; right_label: string }
   | { kind: "flow"; nodes: Array<{id: string; label: string}>; edges: Array<{from: string; to: string}> }
 );
 
 export type StudyQuestion = {
+  parts?: StudyQuestionPart[];
+  alternative?: StudyQuestionPart;
   id: string;
   section: string;
   chapter: string;
@@ -16,7 +19,11 @@ export type StudyQuestion = {
   diagram?: StudyDiagram | null;
 };
 
+export type StudyQuestionPart = { text: string; marks: number; diagram?: StudyDiagram | null; alternative?: StudyQuestionPart; answer_outline?: string; marking_scheme?: Array<{text: string; marks: number}> };
+
 export type StudyPaper = {
+  mode?: "practice" | "board-mock";
+  exam_profile?: { id: string; label: string; session: string; subject_code: string; review_status: string; sample_url: string; curriculum_url: string };
   id: string;
   title: string;
   board: string;

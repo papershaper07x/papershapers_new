@@ -4,7 +4,6 @@ const safeDestinations = new Set([
   "/papershapers/for-teachers",
   "/papershapers/for-teachers/rooms",
   "/papershapers/journal/new",
-  "/perspective/dashboard",
   "/noticeboard/dashboard",
 ]);
 

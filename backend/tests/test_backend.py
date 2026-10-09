@@ -149,13 +149,10 @@ class BackendContractTests(unittest.TestCase):
         forbidden = self.client.post(f"/v1/study/papers/{paper_id}/feedback", json={"user_id": "another-user", "category": "wording", "comment": "Not my paper."})
         self.assertEqual(forbidden.status_code, 404)
 
-    def test_news_fixture_and_three_lens_analysis(self) -> None:
-        articles = self.client.get("/v1/news/articles").json()["items"]
-        self.assertGreaterEqual(len(articles), 2)
-        response = self.client.post("/v1/news/analyze", json={"article_id": articles[0]["id"]})
-        self.assertEqual(response.status_code, 200)
-        lenses = response.json()["analysis"]["lenses"]
-        self.assertEqual(set(lenses), {"left", "centre", "right"})
+    def test_only_supported_product_api_families_are_registered(self) -> None:
+        paths = [route.path for route in app.routes if route.path.startswith("/v1/")]
+        self.assertTrue(paths)
+        self.assertTrue(all(path.startswith(("/v1/study/", "/v1/marketplace/")) for path in paths))
 
     def test_marketplace_ranks_area_and_interest(self) -> None:
         response = self.client.get("/v1/marketplace/listings", params=[("area", "Indiranagar"), ("interests", "Food")])

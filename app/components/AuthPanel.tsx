@@ -54,6 +54,6 @@ export function AuthPanel({ next, initialMode = "signup", googleEnabled = false 
       <button className="auth-submit" disabled={busy} type="submit">{busy ? "Working…" : mode === "signup" ? "Create my workspace →" : "Open my dashboard →"}</button>
     </form>
     {googleEnabled && <><div className="auth-divider" aria-hidden="true">or</div><a className="auth-google" href={`/api/auth/google/start?next=${encodeURIComponent(next)}`}>Continue with Google</a></>}
-    <p className="auth-fineprint">One account works across Study, Perspective, and Marketplace. Passwords are salted and hashed; session cookies are HTTP-only.</p>
+    <p className="auth-fineprint">One account works across Study and Noticeboard. Passwords are salted and hashed; session cookies are HTTP-only.</p>
   </div>;
 }

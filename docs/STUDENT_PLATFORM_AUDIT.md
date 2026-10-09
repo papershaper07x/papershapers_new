@@ -2,7 +2,6 @@
 
 ## Scope and conclusion
 
-Reviewed the Next.js Study routes, authentication, server actions, PostgreSQL room storage, FastAPI paper and attempt contracts, curriculum routing, public metadata, deployment configuration, and current tests. This is a bounded engineering audit, not a certification or a claim that every possible bug has been found. Existing uncommitted news-pipeline work is outside this release.
 
 The hardening release fixes concrete failures. The platform remains suitable for a supervised pilot rather than an unrestricted student launch until the remaining launch gates below are addressed. AI output validation proves structure and mark bounds, not academic accuracy.
 
@@ -74,7 +73,6 @@ Order after launch gates: reviewed sample paper → teacher approval/editing →
 ## Verification evidence
 
 - Next.js 16.4.0 production build and `npm test`: 21 frontend/structure/draft tests passed.
-- Backend suite: 14 tests in the isolated release, with synthetic fixtures; the combined working tree also has 10 unrelated news tests.
 - Public pages, self-practice attempt/results, teacher monitor and Live Room attempt checked at 360, 768 and 1440 pixels with no horizontal document overflow. Screenshots reviewed; inherited metadata styles leaking into question controls were corrected.
 - Real local browser flow with shared PostgreSQL and explicit mock model: signup → generation → MCQ selection → refresh draft recovery → expired timer reload → failed submission retry → result → saved-paper room creation. No JavaScript page errors in that flow.
 - Two student browsers: duplicate student ID returns a visible error and no attendee cookie; original browser resumes; answer outlines absent from rendered student props; after teacher closes a room, submission is rejected and the draft is retained.
@@ -84,6 +82,5 @@ Order after launch gates: reviewed sample paper → teacher approval/editing →
 
 Frontend and backend live in one repository. A single source commit must deploy to both Netlify and Render. Compare Netlify's deployed commit with `/api/release`, and Render's commit with `/version`. A Git push alone does not prove deployment succeeded.
 
-`0005_request_limits.sql` is additive. When `REQUEST_LIMITS_ENABLED=true`, Netlify `prebuild` prepares only this migration and grants the configured runtime role access. It uses `MIGRATION_DATABASE_URL` when set, otherwise `DATABASE_URL`. If schema permissions are absent the build stops rather than deploying broken account routes. Prefer a migration credential in build configuration and a limited runtime credential. Existing news migrations are outside this release and are not invoked by this build preparation.
 
 Check `/robots.txt`, `/sitemap.xml`, `/syllabus`, `/syllabus/class-10` and a returned subject URL. Then verify sign-in, paper generation, reload recovery, submission/review, teacher room creation, two browsers with duplicate IDs, closed-room rejection and a second teacher attempting another teacher's paper ID. Confirm `ALLOW_MOCK_FALLBACK=false` on Render.

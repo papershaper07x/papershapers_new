@@ -42,7 +42,6 @@ class Settings:
     groq_model: str
     nvidia_api_keys: tuple[str, ...]
     nvidia_model: str
-    news_rss_feeds: tuple[str, ...]
     allow_mock_fallback: bool
     study_curriculum_csv_path: Path
     study_generation_cache_version: str
@@ -65,7 +64,6 @@ class Settings:
             groq_model=os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
             nvidia_api_keys=_split(os.getenv("NVIDIA_API_KEYS", os.getenv("NVIDIA_API_KEY", ""))),
             nvidia_model=os.getenv("NVIDIA_MODEL", "nvidia/nemotron-3-super-120b-a12b"),
-            news_rss_feeds=_split(os.getenv("NEWS_RSS_FEEDS", "")),
             allow_mock_fallback=os.getenv("ALLOW_MOCK_FALLBACK", "false").lower() in {"1", "true", "yes"},
             study_curriculum_csv_path=Path(os.getenv("STUDY_CURRICULUM_CSV_PATH", "data/study-source/text_files_data2.csv")),
             study_generation_cache_version=os.getenv("STUDY_GENERATION_CACHE_VERSION", "2026-09-source-v1"),

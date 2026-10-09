@@ -51,7 +51,13 @@ def _fallback_paper(request: StudyPaperRequest, blueprint: dict[str, Any]) -> di
     }
 
 
-async def generate_paper(database: Database, router: LLMRouter, request: StudyPaperRequest) -> dict[str, Any]:
+async def generate_paper(database: Database, router: LLMRouter, request: StudyPaperRequest, *, job_id: str | None = None) -> dict[str, Any]:
+    if request.mode == "board-mock":
+        from .board_mock import generate_board_mock
+        from .board_profiles import CHAPTERS
+        paper = await generate_board_mock(router, request)
+        request = request.model_copy(update={"paper_size": "full", "chapters": CHAPTERS[request.grade]})
+        return _save_paper(database, request, paper, ",".join(paper["generation_providers"]), generation_source="fresh", job_id=job_id)
     selected = validate_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject, request.chapters)
     request = request.model_copy(update={"subject": selected["subject"], "chapters": selected["chapters"]})
     blueprint = _blueprint(request.paper_size)
@@ -71,9 +77,9 @@ async def generate_paper(database: Database, router: LLMRouter, request: StudyPa
         cached = _load_cached_paper(database, cache_key)
         if cached is None:
             raise
-        return _save_paper(database, request, cached, "cache", generation_source="cached-recovery")
+        return _save_paper(database, request, cached, "cache", generation_source="cached-recovery", job_id=job_id)
     _store_cached_paper(database, cache_key, result.value, result.provider, router.settings.study_generation_cache_hours)
-    return _save_paper(database, request, result.value, result.provider, generation_source="fresh")
+    return _save_paper(database, request, result.value, result.provider, generation_source="fresh", job_id=job_id)
 
 
 def _generation_cache_key(request: StudyPaperRequest, cache_version: str) -> str:
@@ -87,6 +93,8 @@ def _generation_cache_key(request: StudyPaperRequest, cache_version: str) -> str
         "chapters": sorted(request.chapters),
         "focus": request.focus,
         "paper_size": request.paper_size,
+        "mode": request.mode,
+        "academic_session": request.academic_session,
     }
     return hashlib.sha256(json.dumps(canonical, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
 
@@ -114,11 +122,14 @@ def _load_cached_paper(database: Database, generation_key: str) -> dict[str, Any
     return {**paper, "cached_from_provider": row["provider"]}
 
 
-def _save_paper(database: Database, request: StudyPaperRequest, paper: dict[str, Any], provider: str, *, generation_source: str) -> dict[str, Any]:
-    paper_id = str(uuid.uuid4())
+def _save_paper(database: Database, request: StudyPaperRequest, paper: dict[str, Any], provider: str, *, generation_source: str, job_id: str | None = None) -> dict[str, Any]:
+    paper_id = job_id or str(uuid.uuid4())
     created_at = datetime.now(UTC).isoformat()
     value = {**paper, "id": paper_id, "provider": provider, "generation_source": generation_source, "created_at": created_at}
     with database.connect() as db:
+        if job_id:
+            db.execute("UPDATE generated_papers SET provider = ?, status = 'generated', paper_json = ? WHERE id = ? AND user_id = ?", (provider, json.dumps(value), job_id, request.user_id))
+            return value
         db.execute("INSERT INTO generated_papers (id, user_id, paper_size, board, grade, subject, chapters_json, provider, status, paper_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (paper_id, request.user_id, request.paper_size, request.board, request.grade, request.subject, json.dumps(request.chapters), provider, "generated", json.dumps(value), created_at))
     return value
 
@@ -179,7 +190,7 @@ def _validate_generated_paper(value: dict[str, Any], blueprint: dict[str, Any], 
 
 def list_papers(database: Database, user_id: str, limit: int = 20, offset: int = 0, include_mock: bool = True) -> list[dict[str, Any]]:
     with database.connect() as db:
-        query = "SELECT id, paper_size, board, grade, subject, chapters_json, provider, status, paper_json, created_at FROM generated_papers WHERE user_id = ?"
+        query = "SELECT id, paper_size, board, grade, subject, chapters_json, provider, status, paper_json, created_at FROM generated_papers WHERE user_id = ? AND status = 'generated'"
         if not include_mock:
             query += " AND provider != 'mock'"
         query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
@@ -189,7 +200,7 @@ def list_papers(database: Database, user_id: str, limit: int = 20, offset: int =
 
 def get_paper(database: Database, paper_id: str, user_id: str, include_mock: bool = True) -> dict[str, Any] | None:
     with database.connect() as db:
-        query = "SELECT id, paper_size, board, grade, subject, chapters_json, provider, status, paper_json, created_at FROM generated_papers WHERE id = ? AND user_id = ?"
+        query = "SELECT id, paper_size, board, grade, subject, chapters_json, provider, status, paper_json, created_at FROM generated_papers WHERE id = ? AND user_id = ? AND status = 'generated'"
         if not include_mock:
             query += " AND provider != 'mock'"
         query += " LIMIT 1"
@@ -282,8 +293,15 @@ async def submit_attempt(database: Database, router: LLMRouter, paper_id: str, r
     answer_ids = [answer.question_id for answer in request.answers]
     if len(answer_ids) != len(set(answer_ids)) or not set(answer_ids).issubset(known_ids):
         raise ValueError("Responses contain duplicate or unknown question IDs")
+    if paper.get("mode") == "board-mock":
+        from .board_mock import selected_response
+        from .schemas import StudyAnswer
+        responses = {answer.question_id: answer.answer for answer in request.answers}
+        converted = [selected_response(question, responses.get(question["id"], "")) for question in paper["questions"]]
+        paper = {**paper, "questions": [question for question, _ in converted]}
+        request = request.model_copy(update={"answers": [StudyAnswer(question_id=question["id"], answer=answer) for question, answer in converted]})
     fallback = _fallback_attempt_score(paper, request)
-    prompt = json.dumps({"task": "Provide formative practice feedback for this paper attempt. Do not claim an official score. Return JSON only.", "paper": {"title": paper.get("title"), "questions": [{"id": q.get("id"), "text": q.get("text"), "options": q.get("options"), "diagram": q.get("diagram"), "marks": q.get("marks"), "answer_outline": q.get("answer_outline")} for q in paper.get("questions", [])]}, "answers": [answer.model_dump() for answer in request.answers], "required_shape": {"earned_marks": "number", "total_marks": "number", "percentage": "number", "breakdown": [{"question_id": "string", "earned_marks": "number", "available_marks": "number", "feedback": "string", "answer_outline": "string"}], "summary": "string", "is_demo": True}}, ensure_ascii=False)
+    prompt = json.dumps({"task": "Provide formative practice feedback for this paper attempt. Do not claim an official score. Return JSON only.", "paper": {"title": paper.get("title"), "questions": [{"id": q.get("id"), "text": q.get("text"), "options": q.get("options"), "diagram": q.get("diagram"), "marks": q.get("marks"), "answer_outline": q.get("answer_outline"), "marking_scheme": q.get("marking_scheme"), "parts": q.get("parts"), "alternative": q.get("alternative"), "correct_option": q.get("correct_option")} for q in paper.get("questions", [])]}, "answers": [answer.model_dump() for answer in request.answers], "required_shape": {"earned_marks": "number", "total_marks": "number", "percentage": "number", "breakdown": [{"question_id": "string", "earned_marks": "number", "available_marks": "number", "feedback": "string", "answer_outline": "string"}], "summary": "string", "is_demo": True}}, ensure_ascii=False)
     def validate_review(candidate: dict[str, Any]) -> dict[str, Any]:
         checked = _validated_attempt_score(candidate, fallback, paper, "model")
         if checked["verification"]["status"] != "validated":
@@ -304,6 +322,15 @@ def get_attempt(database: Database, paper_id: str, attempt_id: str, user_id: str
     with database.connect() as db:
         row = db.execute("SELECT id, paper_id, status, provider, answers_json, score_json, started_at, submitted_at FROM paper_attempts WHERE id = ? AND paper_id = ? AND user_id = ? LIMIT 1", (attempt_id, paper_id, user_id)).fetchone()
     return Database.decode(row, "answers_json", "score_json") if row else None
+
+
+def student_paper(value):
+    """Remove grading material recursively; assessment reads the private stored copy."""
+    if isinstance(value, dict):
+        return {key: student_paper(item) for key, item in value.items() if key not in ("answer_outline", "marking_scheme", "correct_option")}
+    if isinstance(value, list):
+        return [student_paper(item) for item in value]
+    return value
 
 
 def submit_paper_feedback(database: Database, paper_id: str, request: StudyPaperFeedbackRequest) -> bool:

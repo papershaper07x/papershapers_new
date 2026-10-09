@@ -44,7 +44,6 @@ Complete every item in the migration checklist first. Then use the Netlify dashb
 
 ## Git and secret safety
 
-- The active application source is the repository root. Imported Newspaper, News, and old Paper Shapers applications are quarantined locally in `local-reference-archive/` and ignored by Git.
 - The current curriculum input is local-only at `data/study-source/`; install it locally before running generation. Downloaded PDFs, SQLite stores, and generated catalogs are also ignored.
 - Before every push, run `git status --ignored` to confirm `.env.local`, `backend/.env`, `local-reference-archive/`, `data/study-source/`, `data/ncert_pdfs/`, and `site-deploy.tgz` are ignored. Never use `git add -f` on them.
 - If a provider, OAuth, or database credential was ever pasted into chat or committed anywhere, rotate it before public deployment.
