@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-22
+
+- Fixed Vercel dependency installation by aligning `eslint-config-next` with Next.js 16.4.0 and ESLint 9, and refreshing the npm lockfile without peer-dependency bypasses.
+
 ## 2026-10-03
 
 - Kept markets visibly unconfigured rather than fabricating live prices, and documented the source-licence requirement for reused, transformed, or commercial publisher content.

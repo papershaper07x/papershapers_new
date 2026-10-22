@@ -74,6 +74,8 @@ Keep the persistent Python worker on its current service. Free services can slee
 
 ## Verify changes
 
+Keep `eslint-config-next` on the same release as Next.js (currently 16.4.0), with ESLint 9. Commit both `package.json` and `package-lock.json` after dependency updates so Vercel can install with plain `npm ci`; do not bypass peer checks with `--force` or `--legacy-peer-deps`.
+
 ```powershell
 npm run lint
 npm test
