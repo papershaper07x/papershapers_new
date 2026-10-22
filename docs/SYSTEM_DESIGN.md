@@ -6,6 +6,8 @@ Build a recognisable umbrella brand that can launch several focused services che
 
 ## Current system (phase 1)
 
+Database clients do not send `statement_timeout` in PostgreSQL startup parameters, which Neon pooling rejects. Backend connections, web statements/batches/transactions and Vercel schema checks set a 10-second timeout with `SET LOCAL` in the same transaction as their queries, so pooled connections retain the limit without leaking session state.
+
 The web build uses Next.js 16.4.0 with the matching `eslint-config-next` 16.4.0 configuration and ESLint 9. The committed npm lockfile supports strict `npm ci` installation on Vercel without peer-dependency overrides.
 
 ```mermaid

@@ -50,6 +50,8 @@ Use PostgreSQL for persisted application data. SQLite is an offline backend test
 
 ## Database and deployment
 
+Neon pooled connections use transaction-local statement timeouts in both the web application and backend. If an older deployment fails with `unsupported startup parameter ... statement_timeout`, deploy the updated code on Render and Vercel; keep the existing pooled runtime URLs.
+
 Use a separate Neon branch for preview. Apply migrations through 0013 with an operator/direct credential, then grant restricted runtime roles. The migration runner prefers MIGRATION_DATABASE_URL, serialises runners and commits atomically. Reapplied idempotent migrations can still take schema locks; review maintenance timing.
 
 ```powershell

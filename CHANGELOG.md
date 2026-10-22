@@ -2,6 +2,8 @@
 
 ## 2026-10-22
 
+- Fixed Render startup and Vercel database access with Neon pooling by moving statement timeouts from connection startup parameters into the transaction performing each operation.
+
 - Fixed Vercel dependency installation by aligning `eslint-config-next` with Next.js 16.4.0 and ESLint 9, and refreshing the npm lockfile without peer-dependency bypasses.
 
 ## 2026-10-03

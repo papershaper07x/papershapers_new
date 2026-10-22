@@ -9,8 +9,8 @@ await validateAndroidRelease();
 if(process.env.VERCEL==='1'){
  const errors=vercelConfigurationErrors(process.env);
  if(errors.length)throw new Error(errors.join('\n'));
- const sql=postgres(process.env.DATABASE_URL,{max:1,connect_timeout:15,connection:{statement_timeout:10000}});
- try {await verifyVercelSchema(sql,process.env);console.log('Verified Vercel runtime configuration and existing schema (read only).');}
+ const sql=postgres(process.env.DATABASE_URL,{max:1,connect_timeout:15});
+ try {await sql.begin(async transaction=>{await transaction`SET LOCAL statement_timeout = '10s'`;await verifyVercelSchema(transaction,process.env);});console.log('Verified Vercel runtime configuration and existing schema (read only).');}
  finally {await sql.end();}
  process.exit(0);
 }

@@ -46,8 +46,10 @@ class Database:
             from psycopg import connect
             from psycopg.rows import dict_row
 
-            connection = connect(self.database_url, row_factory=dict_row, connect_timeout=10, options="-c statement_timeout=10000")
+            connection = connect(self.database_url, row_factory=dict_row, connect_timeout=10)
             try:
+                # SET LOCAL stays on this transaction's pooled server connection.
+                connection.execute("SET LOCAL statement_timeout = '10s'")
                 yield PostgresConnection(connection)
                 connection.commit()
             except Exception:

@@ -20,6 +20,8 @@ Useful commands:
 
 ## Configuration
 
+Neon pooled runtime URLs are supported. The database adapter applies its 10-second statement timeout with `SET LOCAL` inside each transaction, rather than sending unsupported startup options to the pooler. Keep using the restricted runtime role; this fix does not require changing database credentials.
+
 `backend/.env.example` is the complete configuration contract. `backend/.env` is local-only and ignored by Git.
 
 - `LLM_PROVIDER_ORDER=gemini,groq,nvidia` controls the explicit real-provider sequence. Only configured providers are contacted. A request starts with the first provider and moves to the next only after every key in the current provider's ring fails. This is deterministic fallback, not an agent loop.

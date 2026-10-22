@@ -15,14 +15,20 @@ function convertQuery(input: string) {
 class PostgresStatement {
   private values: unknown[] = [];
 
-  constructor(private readonly client: QueryExecutor, private readonly query: string) {}
+  constructor(private readonly client: QueryExecutor, private readonly query: string, private readonly pool?: QueryClient) {}
 
   bind(...values: unknown[]) {
     this.values = values;
     return this;
   }
 
-  async execute(client: QueryExecutor = this.client) {
+  async execute(client: QueryExecutor = this.client): Promise<postgres.RowList<postgres.Row[]>> {
+    if (this.pool && client === this.client) {
+      return this.pool.begin(async (transaction) => {
+        await transaction.unsafe("SET LOCAL statement_timeout = '10s'");
+        return this.execute(transaction);
+      });
+    }
     return client.unsafe(convertQuery(this.query), this.values as never[]);
   }
 
@@ -46,11 +52,12 @@ class PostgresDatabase {
   constructor(private readonly client: QueryClient) {}
 
   prepare(query: string) {
-    return new PostgresStatement(this.client, query);
+    return new PostgresStatement(this.client, query, this.client);
   }
 
   async batch(statements: PostgresStatement[]) {
     return this.client.begin(async (transaction) => {
+      await transaction.unsafe("SET LOCAL statement_timeout = '10s'");
       const results = [];
       for (const statement of statements) results.push(await statement.execute(transaction));
       return results;
@@ -58,7 +65,10 @@ class PostgresDatabase {
   }
 
   async transaction<T>(operation: (db: { prepare(query: string): PostgresStatement }) => Promise<T>): Promise<T> {
-    return this.client.begin(async (transaction) => operation({ prepare: (query) => new PostgresStatement(transaction, query) })) as Promise<T>;
+    return this.client.begin(async (transaction) => {
+      await transaction.unsafe("SET LOCAL statement_timeout = '10s'");
+      return operation({ prepare: (query) => new PostgresStatement(transaction, query) });
+    }) as Promise<T>;
   }
 }
 
@@ -69,6 +79,6 @@ export function getDb() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required. Run the committed PostgreSQL migrations before starting the web app.");
   const requestedPool = Number(process.env.DATABASE_POOL_MAX ?? 1);
   const max = Number.isInteger(requestedPool) && requestedPool >= 1 && requestedPool <= 5 ? requestedPool : 1;
-  database = new PostgresDatabase(postgres(process.env.DATABASE_URL, { max, idle_timeout: 10, connect_timeout: 10, connection: { statement_timeout: 10000 } }));
+  database = new PostgresDatabase(postgres(process.env.DATABASE_URL, { max, idle_timeout: 10, connect_timeout: 10 }));
   return database;
 }
