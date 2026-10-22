@@ -1,9 +1,12 @@
+import { rejectCrossOrigin } from "../../../../lib/request-safety";
+import { tracedRoute } from "../../../../lib/observability";
 import { createContactSubmission } from "../../../../db/service";
 
 const roles = new Set(["student", "parent", "teacher", "coaching", "other"]);
 const topics = new Set(["feedback", "school", "coaching", "partnership", "other"]);
 
-export async function POST(request: Request) {
+async function handlePOST(request: Request) {
+  const rejected = rejectCrossOrigin(request); if (rejected) return rejected;
   const body = await request.json().catch(() => null) as { name?: unknown; email?: unknown; role?: unknown; topic?: unknown; message?: unknown } | null;
   const name = typeof body?.name === "string" ? body.name.trim().slice(0, 80) : "";
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase().slice(0, 180) : "";
@@ -16,3 +19,5 @@ export async function POST(request: Request) {
   await createContactSubmission({ name, email, role, topic, message });
   return Response.json({ ok: true });
 }
+
+export const POST = tracedRoute("study.contact", handlePOST);

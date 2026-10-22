@@ -1,5 +1,6 @@
 "use client";
 import { hasAttemptAnswer } from "./has-attempt-answer";
+import { generationResponse } from "./generation-response";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -31,7 +32,7 @@ export function PaperAttempt({ paperId }: { paperId: string }) {
     setSubmitting(true); setError("");
     try {
       const response = await fetch(`/api/study/papers/${paperId}/attempts`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers: record.paper.questions.map((question) => ({ questionId: question.id, answer: answers[question.id] ?? "" })) }) });
-      const result = await response.json() as { attempt?: { id: string }; error?: string };
+      const result = await generationResponse<{ attempt?: { id: string }; error?: string }>(response);
       if (!response.ok || !result.attempt) throw new Error(result.error ?? "Your attempt could not be reviewed.");
       clearDraft();
       window.location.assign(`/papershapers/papers/${paperId}/attempts/${result.attempt.id}`);

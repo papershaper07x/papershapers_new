@@ -1,10 +1,14 @@
+import { rejectCrossOrigin } from "../../../../../../lib/request-safety";
+import { tracedRoute } from "../../../../../../lib/observability";
 import { withinRequestLimit, rateLimitResponse } from "../../../../../../lib/request-limit";
+import { dailyStudyQuota } from "../../../../../../lib/study-quota";
 export const maxDuration = 60;
 
 import { userFromRequest } from "../../../../../../lib/auth";
 import { backendFetch, BackendResponseError, BackendUnavailableError } from "../../../../../../lib/backend";
 
-export async function POST(request: Request, { params }: { params: Promise<{ paperId: string }> }) {
+async function handlePOST(request: Request, { params }: { params: Promise<{ paperId: string }> }) {
+  const rejected = rejectCrossOrigin(request); if (rejected) return rejected;
   const user = await userFromRequest(request);
   if (!user) return Response.json({ error: "Sign in is required to submit an attempt." }, { status: 401 });
   const { paperId } = await params;
@@ -12,6 +16,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ pap
   if (!body || !Array.isArray(body.answers) || body.answers.length > 80 || body.answers.some((answer) => !answer || typeof answer.questionId !== "string" || !answer.questionId || typeof answer.answer !== "string" || answer.answer.length > 8000)) return Response.json({ error: "Provide valid responses for this paper (up to 8000 characters each)." }, { status: 400 });
   const answers = (body.answers ?? []).map((answer) => ({ question_id: answer.questionId ?? "", answer: answer.answer ?? "" }));
   if (!await withinRequestLimit("study-assessment", user.id, 60, 600)) return rateLimitResponse(600);
+  const quota = await dailyStudyQuota(user.id);
+  if (quota) return quota;
   try {
     return Response.json(await backendFetch(`/v1/study/papers/${encodeURIComponent(paperId)}/attempts`, { method: "POST", body: JSON.stringify({ user_id: user.id, answers }) }), { status: 201 });
   } catch (error) {
@@ -20,3 +26,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ pap
 }
 
 
+
+export const POST = tracedRoute("study.assessment", handlePOST);

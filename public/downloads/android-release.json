@@ -1,0 +1,13 @@
+{
+    "version":  "1.0.0",
+    "versionCode":  1,
+    "package":  "in.papershapers.study",
+    "minimumAndroid":  "8.0",
+    "filename":  "papershapers-study-1.0.0.apk",
+    "bytes":  16862,
+    "sha256":  "66841368e142f3da8d8069851360b39507dc9bb2fc8d5635d28bdd58463c6051",
+    "signerSha256":  "8c9b4eb1bdf26779297f1e100fc93f36b614bd6da362a7762689f4bc7aeed18d",
+    "builtAt":  "2026-10-10T17:42:26.6701112Z",
+    "architecture":  "browser-custom-tab",
+    "website":  "https://papershapers.in/papershapers/dashboard"
+}

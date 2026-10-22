@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 import uuid
 from datetime import UTC, datetime
@@ -13,10 +14,25 @@ from .database import Database
 from .llm_router import LLMRouter
 from .schemas import StudyPaperRequest
 from .study import generate_paper
+from .observability import event, elapsed, request_id, valid_trace_id
 
 logger = logging.getLogger(__name__)
 RUN_SECONDS = 240
 LEASE_SECONDS = 300
+_worker_loop: asyncio.AbstractEventLoop | None = None
+_worker_event: asyncio.Event | None = None
+
+
+def wake_worker() -> None:
+    if _worker_loop is not None and _worker_event is not None and _worker_loop.is_running():
+        try:
+            _worker_loop.call_soon_threadsafe(_worker_event.set)
+        except RuntimeError:
+            pass  # A concurrent shutdown is safe: the committed job remains durable.
+
+
+def idle_delay(previous: float) -> float:
+    return min(max(previous * 2, 2), 600)
 
 
 def enqueue(database: Database, router: LLMRouter, request: StudyPaperRequest) -> dict:
@@ -32,20 +48,24 @@ def enqueue(database: Database, router: LLMRouter, request: StudyPaperRequest) -
     job_id = str(uuid.uuid4())
     with database.connect() as db:
         db.execute("INSERT INTO generated_papers (id, user_id, paper_size, board, grade, subject, chapters_json, provider, status, paper_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                   (job_id, request.user_id, request.paper_size, request.board, request.grade, request.subject, json.dumps(request.chapters), "pending", "job-queued", json.dumps({"request": request.model_dump()}), datetime.now(UTC).isoformat()))
+                   (job_id, request.user_id, request.paper_size, request.board, request.grade, request.subject, json.dumps(request.chapters), "pending", "job-queued", json.dumps({"request": request.model_dump(), "trace_id": request_id.get()}), datetime.now(UTC).isoformat()))
+    event("generation.job", operation="study.generation", outcome="queued")
+    wake_worker()
     return {"id": job_id, "status": "queued"}
 
 
 def job_status(database: Database, job_id: str, user_id: str) -> dict | None:
     with database.connect() as db:
-        row = db.execute("SELECT status FROM generated_papers WHERE id = ? AND user_id = ?", (job_id, user_id)).fetchone()
+        row = db.execute("SELECT status, paper_json FROM generated_papers WHERE id = ? AND user_id = ?", (job_id, user_id)).fetchone()
     if not row:
         return None
     state = row["status"]
     if state == "generated":
         return {"id": job_id, "status": "ready", "paper_id": job_id}
     if state == "job-failed":
-        return {"id": job_id, "status": "failed", "error": "We couldn’t finish this paper. Please try again."}
+        trace_id = json.loads(row["paper_json"]).get("trace_id")
+        reference = f" Support reference: {valid_trace_id(trace_id)}." if trace_id else ""
+        return {"id": job_id, "status": "failed", "error": "We couldn’t finish this paper. Please try again." + reference}
     return {"id": job_id, "status": "queued" if state == "job-queued" else "generating"}
 
 
@@ -53,8 +73,18 @@ async def run_next(database: Database, router: LLMRouter) -> bool:
     now = int(time.time())
     # Compare-and-swap claims also work when the API has multiple processes.
     with database.connect() as db:
-        rows = db.execute("SELECT id, status, paper_json FROM generated_papers WHERE status = 'job-queued' OR status LIKE 'job-running:%' ORDER BY created_at LIMIT 100").fetchall()
-        row = next((item for item in rows if item["status"] == "job-queued" or int(item["status"].split(":", 1)[1]) < now), None)
+        # Paid requests may move ahead of recent free requests. After ten
+        # minutes every request ranks by age, preventing free-tier starvation.
+        order = "g.created_at"
+        params = ()
+        if os.environ.get("BILLING_ENABLED") == "true":
+            order = """CASE WHEN g.created_at <= ? THEN 0
+                WHEN EXISTS (SELECT 1 FROM billing_orders b WHERE b.user_id = g.user_id
+                AND b.kind = 'membership' AND b.status = 'paid' AND b.expires_at > ?) THEN 1
+                ELSE 2 END, g.created_at"""
+            params = (datetime.fromtimestamp(now - 600, UTC).isoformat(), datetime.fromtimestamp(now, UTC).isoformat())
+        rows = db.execute(f"SELECT g.id, g.status, g.paper_json, g.created_at FROM generated_papers g WHERE g.status = 'job-queued' OR (g.status LIKE 'job-running:%' AND CAST(SUBSTR(g.status, 13) AS INTEGER) < ?) ORDER BY {order} LIMIT 1", (now, *params)).fetchall()
+        row = rows[0] if rows else None
         if row is None:
             return False
         run_seconds = 900 if json.loads(row["paper_json"])["request"].get("mode") == "board-mock" else RUN_SECONDS
@@ -62,26 +92,52 @@ async def run_next(database: Database, router: LLMRouter) -> bool:
         changed = db.execute("UPDATE generated_papers SET status = ? WHERE id = ? AND status = ?", (claim, row["id"], row["status"])).rowcount
         if not changed:
             return False
+    trace_token = request_id.set(valid_trace_id(json.loads(row["paper_json"]).get("trace_id")))
+    started = time.perf_counter()
+    queued_at = row["created_at"]
+    queued_at = datetime.fromisoformat(queued_at) if isinstance(queued_at, str) else queued_at
+    event("generation.job", operation="study.generation", outcome="started", queue_ms=(datetime.now(UTC) - queued_at).total_seconds() * 1000)
     try:
         request = StudyPaperRequest.model_validate(json.loads(row["paper_json"])["request"])
         await asyncio.wait_for(generate_paper(database, router, request, job_id=row["id"]), run_seconds)
+        event("generation.job", operation="study.generation", outcome="completed", duration_ms=elapsed(started))
     except asyncio.CancelledError:
+        event("generation.job", operation="study.generation", outcome="cancelled", duration_ms=elapsed(started))
         # Graceful restarts release the job; crashes recover after the lease.
         with database.connect() as db:
             db.execute("UPDATE generated_papers SET status = 'job-queued' WHERE id = ? AND status = ?", (row["id"], claim))
         raise
     except Exception as error:
-        logger.warning("Generation job %s failed (%s)", row["id"], type(error).__name__)
+        event("generation.job", operation="study.generation", outcome="failed", duration_ms=elapsed(started))
         with database.connect() as db:
             db.execute("UPDATE generated_papers SET status = 'job-failed' WHERE id = ? AND status = ?", (row["id"], claim))
+    finally:
+        request_id.reset(trace_token)
     return True
 
 
 async def worker(database: Database, router: LLMRouter) -> None:
-    while True:
-        try:
-            if await run_next(database, router):
-                continue
-        except Exception as error:
-            logger.warning("Generation worker unavailable (%s)", type(error).__name__)
-        await asyncio.sleep(2)
+    global _worker_loop, _worker_event
+    _worker_loop = asyncio.get_running_loop()
+    signal = asyncio.Event()
+    _worker_event = signal
+    delay = 1.0
+    try:
+        while True:
+            signal.clear()
+            try:
+                if await run_next(database, router):
+                    delay = 1.0
+                    continue
+            except Exception as error:
+                logger.warning("Generation worker unavailable (%s)", type(error).__name__)
+            delay = idle_delay(delay)
+            try:
+                await asyncio.wait_for(signal.wait(), timeout=delay)
+                delay = 1.0
+            except TimeoutError:
+                pass
+    finally:
+        if _worker_event is signal:
+            _worker_event = None
+            _worker_loop = None

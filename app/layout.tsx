@@ -8,10 +8,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const origin = SITE_ORIGIN;
 
   return {
+    manifest: "/manifest.webmanifest",
+    appleWebApp: { capable: true, title: "Study", statusBarStyle: "default" },
     metadataBase: new URL(origin),
     title: { default: "Paper Shapers — A house of useful ideas", template: "%s · Paper Shapers" },
     description: "Practical digital products for learning and local discovery.",
-    icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
+    icons: { icon: "/favicon.svg", shortcut: "/favicon.svg", apple: "/app-icon-192.png" },
     openGraph: {
       type: "website",
       siteName: "Paper Shapers",

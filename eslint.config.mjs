@@ -23,6 +23,8 @@ const eslintConfig = defineConfig([
     "dist/**",
     "work/**",
     "outputs/**",
+    // Vendored browser assets are not maintained TypeScript sources.
+    "public/landing-pages/inner-green-assets/three.min.js",
   ]),
 ]);
 

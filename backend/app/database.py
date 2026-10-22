@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
@@ -8,6 +9,7 @@ from typing import Any, Iterator, Mapping
 
 
 SQLITE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS llm_call_budget (id TEXT PRIMARY KEY, day_key TEXT NOT NULL, month_key TEXT NOT NULL, daily_calls INTEGER NOT NULL, monthly_calls INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS generated_papers (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, paper_size TEXT NOT NULL, board TEXT NOT NULL, grade TEXT NOT NULL, subject TEXT NOT NULL, chapters_json TEXT NOT NULL, provider TEXT NOT NULL, status TEXT NOT NULL, paper_json TEXT NOT NULL, created_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS generated_papers_user_idx ON generated_papers(user_id, created_at DESC);
 CREATE TABLE IF NOT EXISTS generated_paper_cache (generation_key TEXT PRIMARY KEY, provider TEXT NOT NULL, paper_json TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);
@@ -44,7 +46,7 @@ class Database:
             from psycopg import connect
             from psycopg.rows import dict_row
 
-            connection = connect(self.database_url, row_factory=dict_row)
+            connection = connect(self.database_url, row_factory=dict_row, connect_timeout=10, options="-c statement_timeout=10000")
             try:
                 yield PostgresConnection(connection)
                 connection.commit()
@@ -72,7 +74,7 @@ class Database:
     def initialize(self) -> None:
         if self.database_url:
             with self.connect() as db:
-                for version in ("0001_initial",):
+                for version in (("0001_initial", "0008_llm_budget", "0007_billing") if os.environ.get("BILLING_ENABLED") == "true" else ("0001_initial", "0008_llm_budget")):
                     row = db.execute("SELECT version FROM schema_migrations WHERE version = ?", (version,)).fetchone()
                     if not row:
                         raise RuntimeError(f"PostgreSQL migration {version} has not been applied. Configure MIGRATION_DATABASE_URL in backend/.env with the database owner credential, then run: powershell -ExecutionPolicy Bypass -File .\\backend.ps1 migrate. Keep DATABASE_URL as the runtime role.")

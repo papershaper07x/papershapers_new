@@ -37,15 +37,15 @@ The callback rejects missing configuration, a mismatched one-time state cookie, 
 
 ## Hosting decision for today
 
-The active application now builds with standard Next.js and uses PostgreSQL. The selected topology is Netlify for the web runtime, Render for FastAPI, and Neon for shared persistence. Publishing remains an explicit owner action after the blockers below are closed.
+The active application now builds with standard Next.js and uses PostgreSQL. The selected topology is Vercel for the web runtime, Render for FastAPI, and Neon for shared persistence. Publishing remains an explicit owner action after the blockers below are closed.
 
 | Service | Current role | Requirement before launch |
 | --- | --- | --- |
-| Netlify | Standard Next.js frontend and server routes | Web-role Neon URL, Render origin/secret, OAuth values, final domains |
+| Vercel | Standard Next.js frontend and server routes | Web-role Neon URL, Render origin/secret, OAuth values, final domains |
 | Render | Stateless FastAPI generation service | API-role Neon URL, provider keys, shared secret, strict CORS |
 | Neon | Shared PostgreSQL | Apply `database/migrations/` with a migration role and keep preview/production separate |
 
-See [the deployment runbook](DEPLOYMENT_NETLIFY_RENDER_NEON.md) for the console order, variables, role boundaries and rollback gates.
+See [the deployment runbook](production/02-vercel/README.md) for the console order, variables, role boundaries and rollback gates.
 
 ## Launch blockers
 

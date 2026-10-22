@@ -24,7 +24,7 @@ def _is_learning_chapter(chapter: str) -> bool:
     return bool(value) and "mock paper" not in value and "sample paper" not in value
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=1)
 def _read_rows(path_value: str) -> tuple[dict[str, str], ...]:
     path = Path(path_value)
     rows: list[dict[str, str]] = []
@@ -143,7 +143,7 @@ def paper_guidance_for_selection(path: Path, board: str, grade: str, subject: st
     return ""
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=1)
 def _read_paper_guidance_rows(path_value: str) -> tuple[dict[str, str], ...]:
     """Load legacy paper-setting rules separately from chapter content.
 

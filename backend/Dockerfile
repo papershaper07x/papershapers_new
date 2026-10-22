@@ -13,4 +13,4 @@ COPY data/curriculum_store.sqlite data/curriculum_store.sqlite
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python -m uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "python -m uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8000} --no-access-log"]

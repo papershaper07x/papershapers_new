@@ -1,198 +1,103 @@
 # Paper Shapers
 
-> Knowledge-transfer snapshot — 2 October 2026
+Current production handoff: **22 October 2026**. One Next.js application contains core Home, Study and Nearby. The current target is **Vercel (web) + existing FastAPI worker service + Neon PostgreSQL**. No Netlify build adapter or migration path is required. Follow the Vercel guide below.
 
-This file is the short hand-off for the current repository. It records what is live in
-the code, how the local and hosted pieces fit together, what was deliberately removed,
-and what still blocks a production launch.
+## Start here
 
-Paper Shapers is an umbrella for small, practical digital products. This repository contains one deployable application with two deliberately independent product experiences:
+- [Production launch handbook](docs/production/README.md): ordered development, deployment, operations, SEO, marketing, ads and growth steps.
+- [Production audit and open launch gates](docs/PRODUCTION_AUDIT.md): what is implemented, verified, unresolved and externally dependent.
+- [Local verification evidence](docs/MARKETPLACE_TEST_REPORT.md): deterministic tests, browser checks and their limits.
+- [Marketplace business decisions](docs/MARKETPLACE_BUSINESS_MODEL.md): zero commission, direct discovery, honest activity signals and planned funding.
 
-- **Study** (`/papershapers`, future `learn.papershapers.in`) — focused CBSE practice, private paper briefs, and study history.
-- **Nearby Marketplace** (`/noticeboard`, future `nearby.papershapers.in`) — fresh posts from nearby shops, services, events, and communities, with area and interest preferences.
+A local green build does not certify production readiness. Commercial hosting eligibility, actual Neon roles/restore, TLS/OAuth, provider safety, legal/operator arrangements and deployed acceptance remain required. No deployment, DNS change, ad activation or purchase is implied by this README.
 
+## Products and stable URLs
 
-## Current release and decisions
+| Host | Root behavior | Stable product routes |
+| --- | --- | --- |
+| papershapers.in | Core homepage | / |
+| study.papershapers.in | Internal rewrite to Study | /papershapers, /syllabus |
+| marketplace.papershapers.in | Internal rewrite to Nearby | /noticeboard |
 
-- The active web app is a standard Next.js application at the repository root. The old Vite/Vinext/Cloudflare Worker runtime was removed from the active build; the former D1 schema is migration history only.
-- The intended free-tier topology is **Netlify (Next.js web and same-origin server routes) → Render (FastAPI) → Neon (PostgreSQL)**. The browser does not call Render directly; Netlify routes forward authenticated requests with `X-Backend-Secret`.
-- PostgreSQL is the shared persistence target. The Python SQLite adapter remains only for offline tests.
-- Google OAuth, password sessions, paper generation, attempts, feedback, teacher rooms, Journal moderation, and portal navigation are implemented. OAuth stays disabled until the exact callback URI is configured.
-- Render may sleep, Neon may scale to zero, neither has an SLA or guaranteed backups, and Render storage is ephemeral.
+The shared logo returns to core Home; portal navigation stays inside that portal. Public browsing is allowed. Study private work, teacher hosting, marketplace posting, saving, reporting and reservations use the appropriate account/session checks. Student room entry has its own scoped attendee flow.
 
+One shared identity supports password sessions and Google OAuth. Production sibling domains sharing cookies must all be trusted. Exact Google callback URLs must be configured for every actual hostname. Provider secrets never reach browser code.
 
-**Recent Deployment Updates:**
-- The local `curriculum_store.sqlite` file is now tracked in Git (removed from `.gitignore`) so that the Render backend deployment has access to the NCERT syllabus data, resolving the "installed curriculum source is unavailable" error on production.
-- Custom domain (`papershapers.in`) was successfully migrated from GoDaddy/Firebase to Cloudflare and connected to Netlify via `A` and `CNAME` records configured for `DNS only` (Grey cloud), allowing Netlify to seamlessly provision Let's Encrypt SSL certificates.
+## Implemented behavior
 
-## Run the repo
+Study includes class/subject/chapter planning, private queued paper generation, attempts/formative feedback, teacher rooms, published editorial/Journal pages and optional gated billing/mobile installation. Generated content is practice support, not official CBSE material or certified marking. Journal submissions remain pending until operator publication.
 
-Requirements: Node.js 22.13 or newer and Python 3.11 or newer.
+Nearby includes India state/city presets and custom towns, category/keyword search, optional approximate H3 distance filtering, reviewed text/compressed images, private pending submissions, owner withdrawal, reports/blocks and one-person free reservation requests. Organisers confirm or decline; visitor updates live in the dashboard. There is no email/SMS/push delivery, ticket guarantee or venue payment handling. Public engagement counts represent account actions, not verified humans or footfall. Dummy previews are labelled and non-bookable.
 
-On Windows, the project runner is the shortest path:
+The marketplace charges no transaction commission or reservation request fee. Venue charges and taxes can apply. Third-party ad scripts are off; ads.txt requires a real configured publisher ID. Study Plus is separate. New paid checkout and advertising need their own acceptance gates. No fee-based Buy Me a Coffee integration was enabled under the free-only requirement.
+
+## Local development
+
+Use Node 22.13+ and Python 3.11+. Follow [the development steps](docs/production/01-development/README.md) and [RUNBOOK.md](RUNBOOK.md).
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\run.ps1 setup
-powershell -ExecutionPolicy Bypass -File .\backend.ps1 setup
-powershell -ExecutionPolicy Bypass -File .\backend.ps1 run
-# In a second terminal:
-powershell -ExecutionPolicy Bypass -File .\run.ps1 dev
-```
-
-Then open `http://localhost:3000`. Use `Ctrl+C` to stop the development server.
-
-The equivalent direct npm commands are:
-
-```bash
-npm install
+npm ci
+# Configure ignored .env.local and backend/.env from the examples.
+# Install backend/requirements.txt in the project's Python environment.
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --no-access-log
+# In another terminal:
 npm run dev
-npm run build
-npm test
 ```
 
-See [RUNBOOK.md](RUNBOOK.md) for every supported local command and troubleshooting notes.
+Windows wrappers are run.ps1 and backend.ps1. Normal dev URL is http://localhost:3000. The Python backend needs its approved curriculum source; see [backend/README.md](backend/README.md). Its Docker image includes data/curriculum_store.sqlite; verify availability/licensing and actual reader behavior before release. Large source CSVs/instructions, downloaded PDFs and private runtime stores remain outside the web deployment.
 
+Use PostgreSQL for persisted application data. SQLite is an offline backend test adapter; PGlite is a disposable integration-test database, not production persistence.
 
-Before generating a paper in a fresh clone, restore the approved local curriculum CSV and `instructions.csv` under `data/study-source/`. These source inputs, downloaded NCERT PDFs, generated SQLite/JSON stores, old reference applications, and local environment files are deliberately ignored so they cannot be committed by accident.
+## Database and deployment
 
-The web application now runs on standard Next.js and uses PostgreSQL through `DATABASE_URL`; the former D1 schema remains only as migration history while parity is verified. The selected production target is Netlify (web), Render (FastAPI), and Neon (PostgreSQL). Local PostgreSQL and SQLite fallback tests remain available. See [the deployment runbook](docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md). No paid authentication provider is required.
+Use a separate Neon branch for preview. Apply migrations through 0013 with an operator/direct credential, then grant restricted runtime roles. The migration runner prefers MIGRATION_DATABASE_URL, serialises runners and commits atomically. Reapplied idempotent migrations can still take schema locks; review maintenance timing.
 
-Apply `npm run db:migrate:postgres` before the first account request. Password sign-in works locally today; Google sign-in is implemented but appears only after its server-only OAuth environment values are configured. See [docs/LAUNCH_READINESS.md](docs/LAUNCH_READINESS.md) for the exact setup and pre-launch checks.
+```powershell
+# Inject the owner credential only into this trusted operator/CI step.
+npm run db:migrate:postgres
+# Remove owner credentials before invoking a Vercel build/deployment.
+```
 
-## Accounts and access rules
+Do not place MIGRATION_DATABASE_URL in the Vercel project. Its prebuild now validates configuration and existing schema without mutations. Ordinary project variables can reach both build and runtime. All hosted schema mutations are separate operator/CI steps; there is no legacy host build path.
 
-| Surface | Public reading | Account rule | Private dashboard |
-| --- | --- | --- | --- |
-| Study (Self-practice) | Product explanation and paper options | Required before a paper brief is stored or generated | `/papershapers/dashboard` |
-| Study (Live Rooms) | Room entry landing page (`/papershapers/room`) and student attempts via scoped session cookie | Required for teachers to host rooms; account-free for student attendees | `/papershapers/for-teachers/rooms` |
-| Nearby | Full public browsing and filtering | Optional for saving; required for posting | `/noticeboard/dashboard` |
-
-One session can work across `*.papershapers.in` after the final cookie domain is configured. Passwords are salted with a unique random value and derived with PBKDF2-SHA-256. Raw passwords and session tokens are never stored.
-
-## Subdomain model
-
-The Worker performs an internal hostname rewrite rather than a browser redirect:
-
-| Public hostname | Internal route |
-| --- | --- |
-| `papershapers.in` | `/` |
-| `learn.papershapers.in` | `/papershapers` |
-| `nearby.papershapers.in` | `/noticeboard` |
-
-Set these build-time values when custom domains are ready so cross-product navigation also uses subdomains:
+Production public navigation values are:
 
 ```dotenv
 NEXT_PUBLIC_HOME_ORIGIN=https://papershapers.in
-NEXT_PUBLIC_STUDY_ORIGIN=https://learn.papershapers.in
-NEXT_PUBLIC_MARKET_ORIGIN=https://nearby.papershapers.in
+NEXT_PUBLIC_STUDY_ORIGIN=https://study.papershapers.in/papershapers
+NEXT_PUBLIC_MARKET_ORIGIN=https://marketplace.papershapers.in/noticeboard
 ```
 
+Use a pooled restricted DATABASE_URL, DATABASE_POOL_MAX=1, actual HTTPS BACKEND_ORIGIN, matching high-entropy BACKEND_SHARED_SECRET, REQUEST_LIMITS_ENABLED=true and MARKETPLACE_ENABLED=true. Preview also requires an actually isolated database and PREVIEW_DATABASE_ISOLATED=true. Full variables, grants, domains and rollback steps are in [the deployment README](docs/production/02-vercel/README.md).
+
+Keep the persistent Python worker on its current service. Free services can sleep and lack the availability/backup guarantees required by some launches. Vercel Hobby is personal/non-commercial: choose commercial-eligible hosting before this business goes public. Do not assume distributing services across free plans removes those terms or operating costs.
+
+## Verify changes
+
+```powershell
+npm run lint
+npm test
+npm run backend:test
+npm run audit:deployment
+npm run test:e2e:marketplace
+```
+
+`npm test` includes the required production build. The end-to-end runner uses an isolated local database and stubbed AI transport. Run it after building. Stop production previews before modifying their .next output. Production Turbopack filesystem caching is disabled after a reproduced stale PostCSS issue; a regression test verifies new responsive styles reach build artifacts.
+
+The deployment trace audit checks a 200 MiB review budget and private/backend material; local Windows traces do not prove Linux/Vercel bundle size or hosted RSS. Real device, provider, Neon concurrency/grant/restore and payment acceptance remain separate gates.
 
 ## Repository map
 
-```text
-app/
-  components/          shared site chrome
-  api/                 auth, preferences, moderated-community, saved-item, and study request endpoints
-  auth/                shared account entry
-  papershapers/        education portal, paper, attempt, teacher live room, and student room routes
-  noticeboard/         local discovery portal and its product README
-  globals.css          shared visual system and responsive rules
-backend/
-  app/                 FastAPI routes, SQLite test adapter, curriculum and model router
-  Dockerfile           Render container boundary (after Postgres migration)
-  tests/               backend integration tests
-  README.md            backend configuration and API contract
-docs/
-  SYSTEM_DESIGN.md     high-level architecture, flows, and rollout plan
-  UI_UX_GUIDE.md       shared experience rules and per-portal interaction flows
-  PROJECT_BRIEF.md     clearly labelled reconstruction of the founding brief
-  BACKEND_AUDIT.md     review and migration decisions for imported code
-  NETLIFY_HANDOFF.md   local-only hosting decision and future migration checklist
-  DEPLOYMENT_NETLIFY_RENDER_NEON.md selected five-console deployment runbook
-frontend/
-  README.md            web boundary and staged physical-move contract
-tests/
-  site-structure...    low-cost structural guardrails
-  live-rooms...        SQLite lifecycle, room states, attendee options, and route guardrails
-AGENTS.md              standing maintenance rules for future changes
-CHANGELOG.md            human-readable history of repository changes
-RUNBOOK.md              local setup, validation, and deployment handoff
-run.ps1                 Windows command runner
-db/
-  service.ts           PostgreSQL data-access boundary used by Next server routes
-database/migrations/   PostgreSQL schema and migration ledger
-scripts/               SQLite-to-PostgreSQL importer and curriculum utilities
-config/                sanitized deployment examples only
-local-reference-archive/ ignored legacy/reference applications
-```
+| Path | Responsibility |
+| --- | --- |
+| app/components, app/globals.css | Shared brand, layout and responsive styles |
+| app/papershapers, app/syllabus | Study, Journal, curriculum, rooms and private workflows |
+| app/noticeboard | Nearby discovery, posting, details and local desk |
+| app/api | Same-origin web adapters and authenticated mutations |
+| backend/app | FastAPI generation, queue, judge and provider budgets |
+| db, database/migrations | PostgreSQL adapter, service contracts and additive schema |
+| scripts | Migration, preflight, moderation, packaging and isolated tests |
+| mobile/android, public/downloads | Deliberate Android source/public signed artifact; no private keys |
+| docs/production | Current launch, promotion, monetisation and growth instructions |
 
-## Architecture decisions
-
-1. **One deployable, multiple bounded products.** This makes the first release inexpensive and easy to maintain. Each portal keeps its own route, UI identity, dashboard, and data boundary and can later be extracted without redesigning it.
-2. **Stable URLs and portal boundaries.** Production may map subdomains at Netlify/Cloudflare; local development uses stable path routes. No portal depends on hidden client state from another portal.
-3. **Server components by default.** Interactive islands are small client components. This limits shipped JavaScript and keeps content fast on low-end mobile devices.
-5. **Replaceable backend adapters.** The Python service uses SQLite only for offline tests and shared Neon PostgreSQL in Render. Its explicit server-side Gemini/Groq/NVIDIA NIM sequence, owner-scoped contracts, and expiry-bound identity-free recovery cache remain behind authenticated Netlify server routes; credentials never reach the browser.
-
-Full architecture and rollout details live in [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md). The interaction model and responsive behaviour are documented in [docs/UI_UX_GUIDE.md](docs/UI_UX_GUIDE.md).
-
-Before a public launch, read [docs/LAUNCH_READINESS.md](docs/LAUNCH_READINESS.md) and [the selected deployment runbook](docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md). They map the active application, Google OAuth, network boundaries, data deletion, minor safety, moderation, and hosting blockers. Netlify/Render/Neon remains a target architecture until both migration gates pass.
-
-## Responsive and accessibility baseline
-
-- Fluid type and layouts across mobile, tablet, and desktop.
-- Mobile navigation uses a real button with an expanded state.
-- Product controls are keyboard-operable native buttons.
-- Motion is reduced when the visitor requests it.
-- Colour is paired with labels; it is never the only carrier of meaning.
-- Content width, tap targets, and dense cards collapse deliberately below 920 px and 600 px.
-
-## Documentation contract
-
-Every functional or architectural change must update the closest portal README and, when the change affects shared behaviour, this README or `docs/SYSTEM_DESIGN.md`. User-visible and operational changes are also recorded in `CHANGELOG.md`. The standing rule is recorded in `AGENTS.md` so future contributors and coding agents inherit it automatically.
-
-## Deployment hand-off
-
-1. **GitHub:** push the repository, including `netlify.toml`, `backend/Dockerfile`, and migrations. Never commit `.env*`, API keys, database URLs, curriculum PDFs, generated stores, or local reference apps.
-2. **Neon:** set `DATABASE_URL` in Netlify and Render, then run `npm run db:migrate:postgres` once against the target database. Export backups regularly.
-3. **Render:** create a Web Service using root build context and `backend/Dockerfile`; health check `/health`. Set `DATABASE_URL`, `BACKEND_SHARED_SECRET`, model keys, and `PORT`. The API root returning 404 is expected.
-4. **Netlify:** use repository root, build command `npm run build`, and checked-in `netlify.toml` (publish `.next`, `@netlify/plugin-nextjs`). Set `BACKEND_ORIGIN` to Render, the shared secret, database URL, and Google OAuth values. `BACKEND_ORIGIN` and `GOOGLE_OAUTH_REDIRECT_URI` are configuration URLs, not secret values.
-5. **Cloudflare DNS:** keep Cloudflare as DNS manager. Add the records Netlify provides for `papershapers.in` and `www`; use DNS-only while verifying, then enable proxying only after HTTPS and OAuth callbacks work. Google authorized origins and redirect URIs must match exactly.
-
-### Environment ownership
-
-| Variable | Netlify | Render | Browser |
-| --- | --- | --- | --- |
-| `DATABASE_URL` | yes | yes | never |
-| `BACKEND_SHARED_SECRET` | yes | yes | never |
-| `GOOGLE_CLIENT_SECRET` | yes | no | never |
-| `GOOGLE_CLIENT_ID`, public origins, redirect URI | yes | no | config only |
-| Gemini/Groq/NVIDIA keys | server routes only | yes | never |
-
-Rotate any credential ever pasted into chat, a screenshot, a log, or a committed file before production. Never print secret values while debugging.
-
-## Known blockers and safe next steps
-
-- `data/study-source/` is ignored and is not copied into the Render image. Production paper generation is not ready until an approved curriculum snapshot is imported into the hosted data boundary. Do not substitute dummy questions or claim live CBSE coverage.
-- Configure and test separate localhost and production Google OAuth callbacks.
-- Review the current `npm install` audit findings (including one critical advisory) and upgrade deliberately; do not run `npm audit fix --force` blindly.
-- Add backups/restore drills, rate limits, moderation, deletion requests, and age-appropriate consent before inviting minors. Collect the minimum personal data.
-- Keep deployment reversible: free tiers can sleep or pause, and a health pinger is optional and must respect provider terms.
-
-Useful references: [RUNBOOK.md](RUNBOOK.md), [launch readiness](docs/LAUNCH_READINESS.md), [system design](docs/SYSTEM_DESIGN.md), [Netlify/Render/Neon deployment](docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md), [database README](database/README.md), [backend README](backend/README.md), and portal READMEs under `app/`.
-
-## Student hardening release — 9 October 2026
-
-See [the student production audit](docs/STUDENT_PLATFORM_AUDIT.md) for confirmed bugs, shipped fixes, competitor references, remaining launch gates, and deployment verification. Frontend `/api/release` and backend `/version` expose the deployed source commit. When `REQUEST_LIMITS_ENABLED=true`, Netlify prebuild applies the additive `0005_request_limits.sql`; set `MIGRATION_DATABASE_URL` if the runtime role cannot create tables or grant access. Limits default off until the migration and grants are installed; enable them before unrestricted public traffic. Optional Clarity recording is disabled pending consent/privacy work.
-
-The CBSE-referenced paper-quality audit and ordered implementation backlog are in `docs/CBSE_PAPER_QUALITY_AUDIT.md`. This distinguishes structural guarantees from historical model-content findings and proposed educational benchmarks.
-
-For local backend startup errors about unapplied PostgreSQL migrations, configure the owner-only `MIGRATION_DATABASE_URL` in `backend/.env` and run `powershell -ExecutionPolicy Bypass -File .\backend.ps1 migrate` before restarting. See the backend README.
-
-## Active products
-Study and Noticeboard are the two active portals. Retired routes, jobs, fixtures and configuration have been deleted. Existing database cleanup is provided by `database/migrations/0006_retire_portal.sql`; run `backend.ps1 migrate` with the owner credential to remove obsolete stored tables, columns and saved records. Startup requires only the initial core schema. New marketplace preferences use a reserved metadata record in saved items, with read compatibility for older marketplace preferences, so signup and preference updates do not depend on a retired column or on owner access.
-
-### Generation timeout recovery
-Deploy the backend job endpoints/worker before the frontend polling flow. Generation starts with HTTP 202; status polling eventually reports ready and opens the stored paper. Check ownership boundaries and /api/release plus backend /version. A 504 screenshot establishes a gateway timeout, not which hop timed out; inspect hosting logs to locate the cutoff. The new flow avoids holding a web function open during model generation. No database migration or paid queue service is required.
-
-Board mock drafts now cover CBSE 2026–27 Class 10 Mathematics Standard and Class 12 Mathematics (041). See the Study README for scope and official source links, and the backend README for private educator-review export. These drafts still need human review before credibility claims; no approval flag is automatically set.
+Additional references: [system design](docs/SYSTEM_DESIGN.md), [resource bounds](docs/RESOURCE_PLAN.md), [database](database/README.md), [Study](app/papershapers/README.md), [Nearby](app/noticeboard/README.md), [billing](docs/PAYMENT_ACTIVATION.md), [observability](docs/OBSERVABILITY.md), and [Vercel deployment](docs/production/02-vercel/README.md).

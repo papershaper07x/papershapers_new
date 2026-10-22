@@ -1,7 +1,8 @@
+import { tracedRoute } from "../../../../../lib/observability";
 import { userFromRequest } from "../../../../../lib/auth";
 import { backendFetch, BackendUnavailableError } from "../../../../../lib/backend";
 
-export async function GET(request: Request, { params }: { params: Promise<{ paperId: string }> }) {
+async function handleGET(request: Request, { params }: { params: Promise<{ paperId: string }> }) {
   const user = await userFromRequest(request);
   if (!user) return Response.json({ error: "Sign in is required to view this paper." }, { status: 401 });
   const { paperId } = await params;
@@ -12,3 +13,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ pape
   }
 }
 
+
+export const GET = tracedRoute("study.paper", handleGET);

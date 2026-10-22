@@ -174,3 +174,81 @@ Meaningful repository changes are recorded here so the implementation, product n
 - Aligned the installed Next.js lint configuration with Next 16 after finding a mismatched Next 14 configuration.
 
 - Fixed board-reader overflow on small screens, removed site navigation from printed papers, and corrected the plot prompt example to satisfy its bounded diagram contract.
+
+## 2026-10-10 — Optional membership, contributions and mobile app
+
+- Added Razorpay prepaid 30-day Study Plus with manual renewal, contributions, owner payment history, signed reconciliation, replay-safe grants and refund revocation. Payments default disabled pending operator configuration.
+- Added PostgreSQL billing migration, runtime grant preparation and paid queue priority with free-request aging.
+- Added installable PWA metadata/icons, Android/iPhone installation guide and private-data-safe offline fallback; no native store binaries.
+- Updated payment/privacy disclosures and billing/mobile activation runbook.
+
+- Replaced untyped educator error-page props and excluded vendored Three.js from source linting.
+
+## 2026-10-10 — Direct Android APK and operator activation handoff
+
+- Built a small release-signed Android browser launcher with no runtime permissions or native API client; web UI/backend updates arrive through the hosted site.
+- Added a stable APK download route, versioned binary, release checksum/signer metadata, installation instructions, and prebuild integrity validation.
+- Added Windows Android SDK packaging/signing script with private key storage outside source and immutable release filenames.
+- Added detailed payment merchant/KYC, test/live deployment and signing-key backup guidance; no NGO registration or charitable-tax eligibility is assumed.
+- Separated new-checkout pause from paid entitlement reads so a sales pause or gateway key change does not remove existing access. The operator will deploy the prepared APK.
+
+## 2026-10-11
+- Added visible Free/Study Plus comparison and contribution discovery across landing pages, navigation, study desk and planner.
+- Differentiated account generation request limits: Free 3 and active Plus 6 per fixed 10-minute window when shared usage controls are enabled.
+- Updated project page map and commercial flow documentation; payments remain gated by activation settings.
+
+## 11 October 2026 — Study navigation and front-end roadmap
+- Added local destination search, active Study navigation, and mobile menu dismissal on link selection or Escape.
+- Documented prioritised UX, aggregate analytics and operational tracing work; excluded Clarity because Microsoft restricts its use on under-18-targeted sites.
+
+- Corrected Study mobile-menu contrast and constrained expanded navigation to the viewport.
+
+
+## 11 October 2026 — Free AI cost guardrails
+- Enforced five daily account AI requests shared across generation and feedback, independent of optional burst controls, with reset messages and no exhausted-quota payment upsell.
+- Added atomic persistent global provider-call ceilings, bounded key/provider retries, explicit output/input caps, and an operator pause switch.
+- Added migration 0008, runtime grants, cost-control runbook and concurrent/reset/failure tests. Provider currency budgets remain separate dashboard configuration.
+
+
+## 11 October 2026 — First-party tracing and operational logs
+- Added structured Study API/backend/provider logs, random support references and durable generation queue correlation with wait/execution timing.
+- Added coarse page-request logging and an offline log summariser; no vendor tracker or student session replay.
+- Suppressed backend raw URL/access logging, updated the privacy notice and documented hosting access/retention; added privacy, concurrency and durable-trace tests.
+## Marketplace additions — 2026-10-13
+- Replaced public demo inventory with approved, unexpired notices and area/keyword search.
+- Added authenticated, rate-limited text submission, reporting, and operator moderation with audit records. Images remain blocked pending a private screening pipeline.
+- Added marketplace production plan and subdomain deployment instructions.
+- Hardened shared account, preference and saved-item POST routes against cross-origin requests; added bounded marketplace request reads and anonymous-action tests.
+
+## 13 October 2026 — marketplace review, media, search and hosting
+- Added fail-closed text/image AI review through existing backend credentials, a verified-email publication gate, policy acknowledgement, review provenance and private compressed WebP database storage.
+- Added approximate H3 nearby search with distance ordering, explicit location permission, public notice details, guide pages and clearly labelled noindex dummy articles.
+- Refined local discovery surfaces and added interactive next-step selection to Home and Study; retained portal boundaries and reduced-motion support.
+- Added Vercel/Neon migration steps, preview isolation guard, ads.txt configuration, and an isolated production-server E2E harness. Added H3-js/Sharp runtime and PGlite/socket test dependencies.
+- Extended same-origin mutation checks to Study generation, assessment, feedback, contact and brief routes; added operator poster blocks and a transactional image-storage budget.
+- Fixed shared sign-out/preferences network-failure handling, refreshed status after withdrawal, and validated saved-item/preference metadata so malformed requests cannot break dashboards.
+
+## 13 October 2026 — small-platform resource limits
+- Reduced default PostgreSQL pool to one connection, added connection/query deadlines, narrow 51-row marketplace retrieval and lightweight partial indexes.
+- Bounded Sharp cache/threads/decode concurrency and marketplace AI review concurrency/deadline; avoid duplicate initial populated-board requests.
+- Replaced constant Study polling with enqueue wakeups and adaptive idle backoff; claim one job at a time. Added a hosting/resource guide with explicit free-tier limits.
+- Limited large curriculum/source-instruction caches to one path each; retained all approved source content.
+
+- Added organiser-enabled free reservation requests, private host responses and visitor dashboard status updates; deduplicated account interest/detail-view counts, consent and abuse limits. Updated marketplace copy around direct discovery and zero platform commission, with researched business/competitor notes and additive migration 0012.
+
+- Added India state/city and category dropdowns, structured posting/search and bounded AI multi-category tags; labelled local dummy previews, core-home brand navigation, marketplace-only header/footer routes and local-desk shortcuts. Buy Me a Coffee left disabled under the free-only requirement; migration 0013 is additive.
+
+- Disabled production Turbopack filesystem caching after stale global CSS omitted the dropdown styles; added a production CSS regression check.
+
+- 21 October 2026: reverified the saved implementation after interrupted sessions; refreshed test totals and browser evidence in the marketplace verification report. No production migration or deployment.
+
+## 21 October 2026 — production audit
+- Added an ordered production handbook for development, Vercel/Neon, security/moderation, SEO/content, marketing, ads/revenue and growth; corrected root hosting/subdomain guidance.
+- Made Vercel prebuild read-only with configuration/schema gates, moved migration credentials to separate operator/CI steps, fixed owner URL selection and atomic migration execution, and added deployment trace/context checks.
+- Hardened Journal admission and private response headers, suppressed preview indexing, expanded public sitemap discovery with bounded reads/deadline, sanitised auth failure logging and added Vercel release SHA reporting.
+
+## 22 October 2026 — Vercel-only web deployment
+
+- Removed Netlify configuration and legacy build-triggered schema/grant mutations; retained read-only Vercel preflight.
+- Replaced the legacy host regression check with a Vercel deployment contract check.
+- Expanded Vercel setup with console settings, scoped secrets, separate migrations, preview/OAuth setup, three-domain cutover, DNS/registrar retirement, troubleshooting and Vercel rollback; corrected active deployment, billing, database and mobile docs. No hosted site, DNS or subscription was changed.

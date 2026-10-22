@@ -535,3 +535,5 @@
 .board-paper .paper-question__type, .board-paper .paper-question__chapter, .board-paper .paper-question__section { display: none; }
 @media (max-width: 520px) { .exam-options { grid-template-columns: 1fr; } .exam-compound { padding: .5rem; } }
 @media print { .exam-compound, .exam-part, .exam-alternative { break-inside: avoid; } .paper-reader__notice { display: block; } .board-paper .paper-reader__notice { background: none; font-size: 9pt; border: 0; padding: .5rem 0; } }
+.market-dash-body > section[aria-label="My submitted notices"] {grid-column:1/-1;min-width:0}
+.market-dash-body > section[aria-label="My submitted notices"] article {border-bottom:1px solid #aaa;padding-block:1rem;overflow-wrap:anywhere}

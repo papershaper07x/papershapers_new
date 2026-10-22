@@ -41,7 +41,7 @@ export function googleOAuthConfig(requestUrl: string): GoogleOAuthConfig | null 
     if (!local && reqUrl.protocol !== "https:") return null;
     
     // Dynamically construct the redirect URI using the incoming request's host.
-    // This allows native support for Netlify deploy previews (e.g. https://<hash>--<site>.netlify.app)
+    // This supports approved Vercel preview and production hostnames.
     // without requiring dynamic environment variables per preview branch.
     // Google's Cloud Console Authorized Redirect URIs list provides the actual security validation.
     const redirectUri = `${reqUrl.protocol}//${reqUrl.host}/api/auth/google/callback`;

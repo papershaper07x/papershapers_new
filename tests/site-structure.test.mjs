@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
@@ -39,11 +39,13 @@ test("account and dashboard routes exist for every portal", async () => {
   }
 });
 
-test("Netlify explicitly enables the Next.js runtime", async () => {
-  const config = await readFile(new URL("netlify.toml", root), "utf8");
-  assert.match(config, /command = "npm run build"/);
-  assert.match(config, /publish = "\.next"/);
-  assert.match(config, /package = "@netlify\/plugin-nextjs"/);
+test("Vercel uses the Next.js runtime without a legacy host build path", async () => {
+  const config = JSON.parse(await readFile(new URL("vercel.json", root), "utf8"));
+  assert.equal(config.framework, "nextjs");
+  assert.equal(config.buildCommand, "npm run build && npm run audit:deployment");
+  await assert.rejects(readFile(new URL("netlify.toml", root), "utf8"), {code:"ENOENT"});
+  const prebuild = await readFile(new URL("scripts/prepare-hosted-build.mjs", root), "utf8");
+  assert.doesNotMatch(prebuild, /NETLIFY|sql\.unsafe|GRANT/);
 });
 
 test("database schema covers identity and portal state", async () => {
@@ -158,4 +160,12 @@ test("Study includes teacher live room hosting and student test attempt flow", a
   assert.match(service, /createTestRoom/);
   assert.match(service, /joinTestRoom/);
   assert.match(service, /submitTestAttempt/);
+});
+
+test("production CSS includes the responsive marketplace discovery controls", async()=>{
+  const directory=new URL('.next/static/chunks/',root);
+  const names=(await readdir(directory)).filter(name=>name.endsWith('.css'));
+  const css=(await Promise.all(names.map(name=>readFile(new URL(name,directory),'utf8')))).join('');
+  assert.ok(css.includes('.market-search--structured select'),'Dropdown sizing must reach production CSS');
+  assert.ok(css.includes('.market-browse-mode'),'Live/demo controls must reach production CSS');
 });

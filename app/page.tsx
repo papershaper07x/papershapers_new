@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader, SiteFooter } from "./components/SiteChrome";
 import { getCurrentUser } from "../lib/auth";
+import { StartHere } from "./components/StartHere";
 
 export const metadata: Metadata = {
   title: "Paper Shapers — A house of useful ideas",
   description:
     "Explore practical tools for learning and neighbourhood discovery — all under one independent umbrella.",
+  alternates: { canonical: "/" },
 };
 
 const portals = [
@@ -84,6 +86,10 @@ export default async function Home() {
           ))}
         </div>
       </section>
+
+      <StartHere variant="home" />
+
+      <section className="page-shell study-plans"><p className="kicker">Support better study habits</p><h2>Free practice. Optional Study Plus.</h2><p>Start with free chapter practice, or explore Study Plus for higher generation limits and queue priority. Voluntary contributions also help support Paper Shapers.</p><a className="text-link" href="/papershapers#plans">Compare study options →</a></section>
 
       <section className="manifesto" id="principles">
         <div className="page-shell manifesto__grid">

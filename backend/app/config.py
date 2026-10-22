@@ -46,6 +46,12 @@ class Settings:
     study_curriculum_csv_path: Path
     study_generation_cache_version: str
     study_generation_cache_hours: int
+    llm_max_output_tokens: int = 8192
+    llm_max_input_chars: int = 60000
+    llm_max_attempts: int = 2
+    llm_daily_call_limit: int = 20
+    llm_monthly_call_limit: int = 100
+    llm_enabled: bool = True
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -68,4 +74,10 @@ class Settings:
             study_curriculum_csv_path=Path(os.getenv("STUDY_CURRICULUM_CSV_PATH", "data/study-source/text_files_data2.csv")),
             study_generation_cache_version=os.getenv("STUDY_GENERATION_CACHE_VERSION", "2026-09-source-v1"),
             study_generation_cache_hours=max(1, int(os.getenv("STUDY_GENERATION_CACHE_HOURS", "336"))),
+            llm_max_output_tokens=int(os.getenv("LLM_MAX_OUTPUT_TOKENS", "8192")),
+            llm_max_input_chars=int(os.getenv("LLM_MAX_INPUT_CHARS", "60000")),
+            llm_max_attempts=int(os.getenv("LLM_MAX_ATTEMPTS", "2")),
+            llm_daily_call_limit=int(os.getenv("LLM_DAILY_CALL_LIMIT", "20")),
+            llm_monthly_call_limit=int(os.getenv("LLM_MONTHLY_CALL_LIMIT", "100")),
+            llm_enabled=os.getenv("LLM_ENABLED", "true").lower() == "true",
         )

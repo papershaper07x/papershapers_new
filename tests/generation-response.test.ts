@@ -11,6 +11,12 @@ test("generation responses preserve valid jobs and actionable JSON errors", asyn
   await assert.rejects(generationResponse(Response.json({ error: "Sign in to continue." }, { status: 401 })), /Sign in/);
 });
 
+test("support errors include only valid server request references", async () => {
+  const id = "ecf42b8e-906b-4d01-b050-e5c982489adc";
+  await assert.rejects(generationResponse(Response.json({ error: "Unavailable." }, { status: 503, headers: { "X-Request-ID": id } })), new RegExp(id));
+  await assert.rejects(generationResponse(Response.json({ error: "Unavailable." }, { status: 503, headers: { "X-Request-ID": "private@example.test" } })), (error: Error) => !error.message.includes("private"));
+});
+
 import { hasAttemptAnswer } from '../app/papershapers/has-attempt-answer';
 test('choosing an OR branch alone does not mark a question answered', () => {
   assert.equal(hasAttemptAnswer(JSON.stringify({selection:'alternative',answer:'',parts:[]})),false);

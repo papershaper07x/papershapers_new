@@ -1,0 +1,15 @@
+# Web-only upload context; the Python worker has its own deployment.
+/backend/
+/data/
+/local-reference-archive/
+/papershapers/
+/work/
+/artifacts/
+/.agents/
+/.codex/
+/coverage/
+.env*
+*.pem
+*.jks
+*.keystore
+site-deploy.tgz

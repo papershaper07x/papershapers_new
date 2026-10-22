@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SiteHeader, SiteFooter } from "../../../../components/SiteChrome";
 
-export function RoomNotFound({ user }: { user: any }) {
+export function RoomNotFound({ user }: { user: { name: string } | null }) {
   return (
     <main className="portal-page study-page">
       <SiteHeader portal="study" user={user} />
@@ -17,7 +17,7 @@ export function RoomNotFound({ user }: { user: any }) {
   );
 }
 
-export function AccessDenied({ user }: { user: any }) {
+export function AccessDenied({ user }: { user: { name: string } | null }) {
   return (
     <main className="portal-page study-page">
       <SiteHeader portal="study" user={user} />

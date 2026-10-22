@@ -56,6 +56,10 @@ class PostgresDatabase {
       return results;
     });
   }
+
+  async transaction<T>(operation: (db: { prepare(query: string): PostgresStatement }) => Promise<T>): Promise<T> {
+    return this.client.begin(async (transaction) => operation({ prepare: (query) => new PostgresStatement(transaction, query) })) as Promise<T>;
+  }
 }
 
 let database: PostgresDatabase | undefined;
@@ -63,6 +67,8 @@ let database: PostgresDatabase | undefined;
 export function getDb() {
   if (database) return database;
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required. Run the committed PostgreSQL migrations before starting the web app.");
-  database = new PostgresDatabase(postgres(process.env.DATABASE_URL, { max: 5, idle_timeout: 20 }));
+  const requestedPool = Number(process.env.DATABASE_POOL_MAX ?? 1);
+  const max = Number.isInteger(requestedPool) && requestedPool >= 1 && requestedPool <= 5 ? requestedPool : 1;
+  database = new PostgresDatabase(postgres(process.env.DATABASE_URL, { max, idle_timeout: 10, connect_timeout: 10, connection: { statement_timeout: 10000 } }));
   return database;
 }

@@ -1,7 +1,8 @@
+import { tracedRoute } from "../../../../../lib/observability";
 import { userFromRequest } from "../../../../../lib/auth";
 import { backendFetch, BackendResponseError } from "../../../../../lib/backend";
 
-export async function GET(request: Request, { params }: { params: Promise<{ jobId: string }> }) {
+async function handleGET(request: Request, { params }: { params: Promise<{ jobId: string }> }) {
   const user = await userFromRequest(request);
   if (!user) return Response.json({ error: "Sign in to check your paper." }, { status: 401 });
   const { jobId } = await params;
@@ -13,3 +14,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ jobI
     return Response.json({ error: "We couldn’t check your paper yet. Please try again shortly." }, { status: error instanceof BackendResponseError ? error.status : 503 });
   }
 }
+
+export const GET = tracedRoute("study.poll", handleGET);

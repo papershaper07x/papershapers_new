@@ -1,7 +1,10 @@
+import { rejectCrossOrigin } from "../../../../../../lib/request-safety";
+import { tracedRoute } from "../../../../../../lib/observability";
 import { userFromRequest } from "../../../../../../lib/auth";
 import { backendFetch, BackendResponseError, BackendUnavailableError } from "../../../../../../lib/backend";
 
-export async function POST(request: Request, { params }: { params: Promise<{ paperId: string }> }) {
+async function handlePOST(request: Request, { params }: { params: Promise<{ paperId: string }> }) {
+  const rejected = rejectCrossOrigin(request); if (rejected) return rejected;
   const user = await userFromRequest(request);
   if (!user) return Response.json({ error: "Sign in is required to send paper feedback." }, { status: 401 });
   const { paperId } = await params;
@@ -14,3 +17,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ pap
     return Response.json({ error: message }, { status: error instanceof BackendResponseError ? error.status : 503 });
   }
 }
+
+export const POST = tracedRoute("study.feedback", handlePOST);

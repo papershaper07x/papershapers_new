@@ -40,6 +40,7 @@ next-env.d.ts
 /dist/
 /.wrangler/
 /outputs/
+/artifacts/observability/
 /work/
 
 # Local-only reference applications and source material. These are kept in one
@@ -72,3 +73,10 @@ next-env.d.ts
 /backend/data/pipeline-api.*.log
 /backend/__pycache__/
 /backend/**/__pycache__/
+
+# Android intermediates and signing material. Release APKs under public/downloads
+# are deliberate public artifacts; private keys must live outside this checkout.
+/mobile/android/.build/
+*.jks
+*.keystore
+store-password.txt

@@ -33,6 +33,8 @@ def main() -> None:
                     owner.execute(file.read_text(encoding="utf-8"), prepare=False)
                     print(f"Prepared {file.stem}")
             if runtime_role:
+                owner.execute(sql.SQL("GRANT SELECT, INSERT, UPDATE ON TABLE public.llm_call_budget TO {}").format(sql.Identifier(runtime_role)))
+                owner.execute(sql.SQL("GRANT SELECT ON TABLE public.billing_orders TO {}").format(sql.Identifier(runtime_role)))
                 owner.execute(sql.SQL("GRANT SELECT ON TABLE public.schema_migrations TO {}").format(sql.Identifier(runtime_role)))
         print("PostgreSQL migrations committed. Restart the backend.")
     except psycopg.errors.InsufficientPrivilege:

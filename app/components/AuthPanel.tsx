@@ -12,6 +12,7 @@ export function AuthPanel({ next, initialMode = "signup", googleEnabled = false 
     setBusy(true);
     setError("");
     const data = new FormData(event.currentTarget);
+    try {
     const response = await fetch(`/api/auth/${mode}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -30,6 +31,11 @@ export function AuthPanel({ next, initialMode = "signup", googleEnabled = false 
       return;
     }
     window.location.assign(next);
+    } catch {
+      setError("We could not reach the sign-in service. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return <div className="auth-card">
@@ -40,13 +46,13 @@ export function AuthPanel({ next, initialMode = "signup", googleEnabled = false 
     <form onSubmit={submit}>
       {mode === "signup" && <>
         <label>Full name<input name="name" autoComplete="name" minLength={2} required /></label>
-        <label>
+        {!next.startsWith("/noticeboard") && <label>
           I am registering as:
           <select name="role" defaultValue="student" style={{ width: "100%", minHeight: "45px", padding: "0 10px", background: "white", border: "1px solid #ccc", borderRadius: "3px" }}>
             <option value="student">Student / Self-learner</option>
             <option value="teacher">Teacher / Educator</option>
           </select>
-        </label>
+        </label>}
       </>}
       <label>Email address<input name="email" type="email" autoComplete="email" required /></label>
       <label>Password<input name="password" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} minLength={8} required /></label>

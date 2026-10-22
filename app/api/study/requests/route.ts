@@ -1,3 +1,4 @@
+import { rejectCrossOrigin } from "../../../../lib/request-safety";
 import { addStudyRequest } from "../../../../db/service";
 import { userFromRequest } from "../../../../lib/auth";
 
@@ -6,6 +7,7 @@ const allowedGrades = new Set(["8", "9", "10", "11", "12"]);
 const allowedFocus = new Set(["Quick check", "Exam practice", "Weak spots"]);
 
 export async function POST(request: Request) {
+  const rejected = rejectCrossOrigin(request); if (rejected) return rejected;
   const user = await userFromRequest(request);
   if (!user) return Response.json({ error: "Sign in is required to create a study brief." }, { status: 401 });
   const body = await request.json() as { subject?: string; grade?: string; focus?: string };

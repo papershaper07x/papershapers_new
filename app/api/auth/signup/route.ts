@@ -1,8 +1,10 @@
+import { rejectCrossOrigin } from "../../../../lib/request-safety";
 import { withinRequestLimit, rateLimitResponse } from "../../../../lib/request-limit";
 import { createSessionRecord, createUser, findUserByEmail } from "../../../../db/service";
 import { hashPassword, randomToken, sessionCookie, sha256 } from "../../../../lib/auth";
 
 export async function POST(request: Request) {
+  const rejected = rejectCrossOrigin(request); if (rejected) return rejected;
   try {
     const body = await request.json().catch(() => null) as { name?: string; email?: string; password?: string };
     if (!body || typeof body.email !== "string" || typeof body.password !== "string" || body.password.length > 256 || typeof body.name !== "string") return Response.json({ error: "Enter valid account details. Passwords may contain up to 256 characters." }, { status: 400 });
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     await createSessionRecord(user.id, await sha256(token), expires.toISOString());
     return Response.json({ user: { ...user, role } }, { status: 201, headers: { "Set-Cookie": sessionCookie(token, request.url, expires) } });
   } catch (error) {
-    console.error("Signup failed", error);
+    console.error("Signup failed", error instanceof Error ? error.name : "UnknownError");
     return Response.json({ error: "We could not create the account. Please try again." }, { status: 500 });
   }
 }

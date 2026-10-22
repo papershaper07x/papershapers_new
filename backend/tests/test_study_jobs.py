@@ -28,6 +28,23 @@ class GenerationJobTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(get_paper(self.db, self.job["id"], "owner"))
         self.assertEqual(list_papers(self.db, "owner"), [])
 
+    async def test_trace_survives_queue_restart_and_support_reference_matches_failure_log(self):
+        import json
+        import uuid
+        from backend.app.observability import request_id
+        trace = str(uuid.uuid4())
+        with self.db.connect() as db:
+            value = json.loads(db.execute("SELECT paper_json FROM generated_papers WHERE id = ?", (self.job["id"],)).fetchone()["paper_json"])
+            value["trace_id"] = trace
+            db.execute("UPDATE generated_papers SET paper_json = ? WHERE id = ?", (json.dumps(value), self.job["id"]))
+        with self.assertLogs("paper_backend.trace", level="INFO") as captured, patch("backend.app.study_jobs.generate_paper", new=AsyncMock(side_effect=RuntimeError("private answer"))):
+            await run_next(Database(self.db.path), self.router)
+        records = [json.loads(row.message) for row in captured.records]
+        self.assertTrue(all(row["requestId"] == trace for row in records))
+        self.assertEqual(records[-1]["outcome"], "failed")
+        self.assertIn(trace, job_status(self.db, self.job["id"], "owner")["error"])
+        self.assertIsNone(request_id.get())
+
     async def test_completion_uses_same_id_and_cannot_be_claimed_twice(self):
         async def complete(db, router, request, *, job_id):
             return _save_paper(db, request, {"questions": []}, "gemini", generation_source="fresh", job_id=job_id)
@@ -69,3 +86,21 @@ class GenerationJobTests(unittest.IsolatedAsyncioTestCase):
             db.execute("UPDATE generated_papers SET status = 'job-running:1' WHERE id = ?", (self.job["id"],))
         with patch("backend.app.study_jobs.generate_paper", new=AsyncMock(side_effect=RuntimeError())):
             self.assertTrue(await run_next(self.db, self.router))
+
+    async def test_paid_queue_priority_and_aging_protect_free_jobs(self):
+        from datetime import UTC, datetime, timedelta
+        with self.db.connect() as db:
+            db.execute("CREATE TABLE billing_orders(user_id TEXT, kind TEXT, status TEXT, expires_at TEXT)")
+            db.execute("INSERT INTO billing_orders VALUES (?, 'membership', 'paid', ?)", ("paid-owner", (datetime.now(UTC) + timedelta(days=1)).isoformat()))
+        with patch("backend.app.study_jobs.validate_selection", return_value={"subject": "Science", "chapters": ["Electricity"]}):
+            paid = enqueue(self.db, self.router, self.request.model_copy(update={"user_id": "paid-owner"}))
+        generated = AsyncMock(side_effect=RuntimeError("test only"))
+        with patch.dict("os.environ", {"BILLING_ENABLED": "true"}), patch("backend.app.study_jobs.generate_paper", new=generated):
+            await run_next(self.db, self.router)
+            self.assertEqual(generated.call_args.kwargs["job_id"], paid["id"])
+        with self.db.connect() as db:
+            db.execute("UPDATE generated_papers SET status = 'job-queued' WHERE id = ?", (paid["id"],))
+            db.execute("UPDATE generated_papers SET created_at = ? WHERE id = ?", ((datetime.now(UTC) - timedelta(minutes=11)).isoformat(), self.job["id"]))
+        with patch.dict("os.environ", {"BILLING_ENABLED": "true"}), patch("backend.app.study_jobs.generate_paper", new=generated):
+            await run_next(self.db, self.router)
+            self.assertEqual(generated.call_args.kwargs["job_id"], self.job["id"])

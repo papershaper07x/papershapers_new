@@ -63,9 +63,9 @@ PostgreSQL is the normal local and hosted persistence layer. SQLite remains only
 
 ## Render deployment boundary
 
-`backend/Dockerfile` is the production container boundary and accepts Render's `PORT` value. The repository root must be used as its Docker build context. Do not deploy it with SQLite: the free instance filesystem is ephemeral. Follow [the deployment runbook](../docs/DEPLOYMENT_NETLIFY_RENDER_NEON.md).
+`backend/Dockerfile` is the production container boundary and accepts Render's `PORT` value. The repository root must be used as its Docker build context. Do not deploy it with SQLite: the free instance filesystem is ephemeral. Follow [the deployment runbook](../docs/production/02-vercel/README.md).
 
-Render receives LLM keys, `DATABASE_URL`, and `BACKEND_SHARED_SECRET`. It must never receive Google OAuth credentials. Netlify calls the API server-to-server; normal browsers never call the Render URL directly. Free instances sleep after 15 minutes and have an ephemeral filesystem, so the UI must handle cold starts and Neon must own every persistent record.
+Render receives LLM keys, `DATABASE_URL`, and `BACKEND_SHARED_SECRET`. It must never receive Google OAuth credentials. Vercel calls the API server-to-server; normal browsers never call the Render URL directly. Free instances sleep after 15 minutes and have an ephemeral filesystem, so the UI must handle cold starts and Neon must own every persistent record.
 
 ## Safety and product limits
 
@@ -96,3 +96,23 @@ Jobs use existing `generated_papers` columns, so no owner migration is needed. T
 Board profiles are versioned in board_profiles.py. Only CBSE 2026–27 Maths (041) at X Standard / XII is supported. Queue admission checks complete source coverage. Board jobs have a 900-second model budget and a 960-second crash recovery lease; the planner polls for up to 20 minutes. They reuse existing paper JSON storage, with no schema migration. Completed paper JSON retains source hashes/chunk offsets, private worked solutions and per-step marking. Public paper/history responses redact grading fields recursively. Submission binds structured OR choices to one selected rubric and carries case-study parts into assessment. Formative scores remain model reviews.
 
 Operator export: `python backend/scripts/export_board_review.py --paper-id ID --user-id OWNER --output work/review.json`. This reads a private local/operator database and includes answer material; it is not a student download. Have an educator inspect complete papers, keys, subparts, alternatives, figures and timing. The export never changes review status. No reviewed or official-exam claim is made before that human work.
+
+## Optional paid queue priority
+
+Apply owner migration `0007_billing` before setting `BILLING_ENABLED=true`. The migration runner grants the configured backend runtime SELECT on `billing_orders`; Razorpay keys belong only to the web runtime. The queue checks paid unexpired membership grants from the database. Paid recent jobs precede free recent jobs, while jobs older than ten minutes rank first by age to prevent starvation. Running jobs are not preempted; provider latency and limits do not change. Contributions never grant priority. Keep the backend/web feature flags coordinated. See `docs/BILLING_AND_MOBILE.md`.
+
+## Provider-call safety
+Apply 0008_llm_budget and backend runtime grants before restart. Each outgoing call reserves shared persistent daily/monthly allowance, including failed keys and all providers. Defaults: 20/day, 100/month, two attempts per router invocation, 8192 output tokens and 60000 input characters. Set LLM_ENABLED=false to pause new router calls. See docs/AI_COST_CONTROLS.md; counts are not a currency spending guarantee.
+
+
+## Runtime tracing
+The API logs JSON request status/duration under random request IDs; only the authenticated web service can propagate its own reference. Queue envelopes retain it through restarts. Worker and provider events include outcomes, durations and reported numeric usage. Use --no-access-log for Uvicorn; HTTPX URL logs are suppressed. Logs go to stdout, not the student database or a public endpoint. See docs/OBSERVABILITY.md.
+
+## Marketplace review
+POST /v1/marketplace/review uses the existing configured router and budgets. Strict review schema rejects uncertain/flagged/malformed approvals and disallows mocks. Text prefers configured Groq; images use Gemini inline WebP. Service authentication is required. See docs/MARKETPLACE_LAUNCH.md. Vercel migration applies to the Next frontend; keep this persistent worker service as-is until the Study queue is deliberately redesigned.
+
+## Resource defaults
+Use one API/worker process for the pilot. Idle Study polling backs off to ten minutes with immediate same-process enqueue wakeup; review concurrency is one with an 18-second deadline. PostgreSQL connection/statement timeouts are ten seconds; connections close after transactions. Details and free-host sleep tradeoffs: docs/RESOURCE_PLAN.md.
+
+## Production audit
+The Vercel migration does not move the persistent worker into web functions. Keep one backend process initially and validate pooled Neon connectivity, approved curriculum packaging/licensing, ALLOW_MOCK_FALLBACK=false, service authentication, provider quotas, restore and deployed memory. /version now labels the production-audit release; compare its commit with the web Vercel SHA during staging. Owner DB credentials belong in a separate migration step, never ordinary web functions. See docs/production/README.md.

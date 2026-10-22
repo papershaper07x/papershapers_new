@@ -9,14 +9,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "npm run build && node --import tsx --test tests/site-structure.test.mjs tests/live-rooms.test.mjs tests/attempt-draft.test.ts tests/diagrams.test.tsx tests/generation-response.test.ts",
+    "test": "npm run build && node --import tsx --test tests/site-structure.test.mjs tests/live-rooms.test.mjs tests/attempt-draft.test.ts tests/diagrams.test.tsx tests/generation-response.test.ts tests/billing.test.ts tests/android-release.test.ts tests/study-quota.test.ts tests/observability.test.ts tests/marketplace.test.ts tests/marketplace-safety.test.ts tests/production-readiness.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "backend:test": "python -m unittest discover -s backend/tests -v",
     "check": "npm run lint && npm test && npm run backend:test",
     "db:migrate:postgres": "node scripts/migrate-postgres.mjs",
-    "prebuild": "node scripts/prepare-hosted-build.mjs"
+    "prebuild": "node scripts/prepare-hosted-build.mjs",
+    "android:build": "powershell -NoProfile -ExecutionPolicy Bypass -File mobile/android/build.ps1",
+    "test:e2e:marketplace": "node scripts/marketplace-e2e.mjs",
+    "audit:deployment": "node scripts/audit-deployment.mjs"
   },
   "dependencies": {
+    "h3-js": "^4.5.0",
     "katex": "^0.18.9",
     "next": "^16.4.0",
     "postgres": "^3.4.7",
@@ -24,9 +28,12 @@
     "react-dom": "19.2.6",
     "react-markdown": "^10.1.0",
     "rehype-katex": "^7.0.1",
-    "remark-math": "^6.0.0"
+    "remark-math": "^6.0.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
+    "@electric-sql/pglite-socket": "^0.2.12",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",

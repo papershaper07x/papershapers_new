@@ -15,4 +15,4 @@ The exact original prompt used to create the first hosted version is not stored 
 
 - The portals share layout, typography, accessibility rules, and navigation but use different colour and interaction patterns.
 - Current content and interactions are front-end prototypes; durable accounts, generation, publishing, and moderation are deferred.
-- The committed build target is Cloudflare Worker-compatible and does not prevent a later Netlify or Firebase adaptation.
+- The committed web build target is standard Next.js on Vercel, with a separate FastAPI worker and Neon database.

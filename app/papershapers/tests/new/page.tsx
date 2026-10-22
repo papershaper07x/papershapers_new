@@ -9,6 +9,7 @@ export default async function NewTestPage() {
   if (!user) redirect("/auth?next=%2Fpapershapers%2Ftests%2Fnew&mode=login");
   return <>
     <SiteHeader portal="study" user={user} />
+    <div className="page-shell study-plan-note"><p>Free practice or optional priority access. <a className="text-link" href="/papershapers#plans">Compare generation limits and Study Plus →</a></p></div>
     <TestPlanner />
   </>;
 }

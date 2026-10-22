@@ -4,6 +4,7 @@ import hmac
 import asyncio
 import logging
 import sys
+import time
 from contextlib import asynccontextmanager
 from contextlib import suppress
 
@@ -15,21 +16,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import Settings
 from .database import Database
 from .llm_router import GenerationUnavailableError, LLMRouter
 from .marketplace import list_listings, seed_listings
+from .marketplace_review import ReviewRequest, review_notice
 from .schemas import StudyAttemptRequest, StudyPaperFeedbackRequest, StudyPaperRequest
 from .study import generate_paper, get_attempt, get_paper, list_papers, submit_attempt, submit_paper_feedback, student_paper
 from .curriculum import catalog
 from .study_jobs import enqueue, job_status, worker
+from .observability import event, elapsed, request_id, valid_trace_id
+
+# HTTPX INFO logs include full URLs/query strings. Our trace events replace them.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 settings = Settings.from_env()
 database = Database(settings.db_path, settings.database_url)
 router = LLMRouter(settings)
+marketplace_review_slot = asyncio.Lock()
 
 
 @asynccontextmanager
@@ -49,10 +57,30 @@ app = FastAPI(title="Paper Shapers local backend", version="0.1.0", lifespan=lif
 app.add_middleware(CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_credentials=False, allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Backend-Secret"])
 
 
+@app.middleware("http")
+async def trace_request(request: Request, call_next):
+    # Accept the web-generated ID only from the authenticated web service.
+    trusted = settings.shared_secret and hmac.compare_digest(request.headers.get("x-backend-secret", ""), settings.shared_secret)
+    token = request_id.set(valid_trace_id(request.headers.get("x-request-id") if trusted else None))
+    started = time.perf_counter()
+    code = 500
+    try:
+        response = await call_next(request)
+        code = response.status_code
+        response.headers["X-Request-ID"] = request_id.get()
+        return response
+    finally:
+        route = request.scope.get("route")
+        template = getattr(route, "path", "unmatched")
+        # Framework route templates contain placeholders, never actual IDs/queries.
+        event("http.request", operation=template, status=code, duration_ms=elapsed(started))
+        request_id.reset(token)
+
+
 @app.get("/version")
 def version() -> dict:
     import os
-    return {"service": "backend", "commit": os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "local", "release": "2026-10-09-student-hardening"}
+    return {"service": "backend", "commit": os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or "local", "release": "2026-10-21-production-audit"}
 
 
 def require_write_access(x_backend_secret: str | None = Header(default=None)) -> None:
@@ -63,6 +91,17 @@ def require_write_access(x_backend_secret: str | None = Header(default=None)) ->
         )
     if settings.shared_secret and not hmac.compare_digest(x_backend_secret or "", settings.shared_secret):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid backend credential")
+
+
+@app.post("/v1/marketplace/review", dependencies=[Depends(require_write_access)])
+async def marketplace_review(request: ReviewRequest) -> dict:
+    if marketplace_review_slot.locked():
+        raise HTTPException(status_code=503, detail="Review capacity is busy; keep this notice pending", headers={"Retry-After": "5"})
+    try:
+        async with marketplace_review_slot:
+            return await asyncio.wait_for(review_notice(router, request), timeout=18)
+    except (GenerationUnavailableError, ValueError, TimeoutError):
+        raise HTTPException(status_code=503, detail="Review unavailable; keep this notice pending") from None
 
 
 @app.get("/health")

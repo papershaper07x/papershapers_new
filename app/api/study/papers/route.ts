@@ -1,7 +1,8 @@
+import { tracedRoute } from "../../../../lib/observability";
 import { userFromRequest } from "../../../../lib/auth";
 import { backendFetch, BackendUnavailableError } from "../../../../lib/backend";
 
-export async function GET(request: Request) {
+async function handleGET(request: Request) {
   const user = await userFromRequest(request);
   if (!user) return Response.json({ error: "Sign in is required to view your papers." }, { status: 401 });
   const url = new URL(request.url);
@@ -14,3 +15,5 @@ export async function GET(request: Request) {
     return Response.json({ error: error instanceof BackendUnavailableError ? "The paper backend is offline." : "Could not load your papers." }, { status: 503 });
   }
 }
+
+export const GET = tracedRoute("study.history", handleGET);

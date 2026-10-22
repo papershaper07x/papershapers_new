@@ -80,7 +80,7 @@ Order after launch gates: reviewed sample paper → teacher approval/editing →
 
 ## Deployment and re-verification
 
-Frontend and backend live in one repository. A single source commit must deploy to both Netlify and Render. Compare Netlify's deployed commit with `/api/release`, and Render's commit with `/version`. A Git push alone does not prove deployment succeeded.
+Frontend and backend live in one repository. A single source commit must deploy to both Vercel and Render. Compare Vercel's deployed commit with `/api/release`, and Render's commit with `/version`. A Git push alone does not prove deployment succeeded.
 
 
 Check `/robots.txt`, `/sitemap.xml`, `/syllabus`, `/syllabus/class-10` and a returned subject URL. Then verify sign-in, paper generation, reload recovery, submission/review, teacher room creation, two browsers with duplicate IDs, closed-room rejection and a second teacher attempting another teacher's paper ID. Confirm `ALLOW_MOCK_FALLBACK=false` on Render.
