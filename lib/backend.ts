@@ -9,7 +9,7 @@ export class BackendUnavailableError extends Error {
 }
 
 export class BackendResponseError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(public readonly status: number, message: string, public readonly retryAfter?: string) {
     super(message);
     this.name = "BackendResponseError";
   }
@@ -34,7 +34,8 @@ export async function backendFetch<T>(path: string, init?: RequestInit): Promise
   writeTrace("backend.request", "backend", response.status, performance.now() - started);
   if (!response.ok) {
     const payload = await response.json().catch(() => ({})) as { detail?: string };
-    throw new BackendResponseError(response.status, payload.detail || `Backend returned ${response.status}.`);
+    const retryAfter = response.headers.get("Retry-After");
+    throw new BackendResponseError(response.status, payload.detail || `Backend returned ${response.status}.`, retryAfter && /^\d{1,6}$/.test(retryAfter) ? retryAfter : undefined);
   }
   return response.json() as Promise<T>;
 }

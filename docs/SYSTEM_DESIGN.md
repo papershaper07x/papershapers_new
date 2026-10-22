@@ -6,6 +6,12 @@ Build a recognisable umbrella brand that can launch several focused services che
 
 ## Current system (phase 1)
 
+The Python PostgreSQL adapter doubles literal SQL percent signs before introducing psycopg bind placeholders. The generation worker's status wildcard query is covered by a PostgreSQL-wire integration check, because SQLite-only tests cannot reveal driver placeholder parsing failures.
+
+Study's daily account allowance is backend-owned: account-scoped PostgreSQL transaction advisory locks serialise a count of completed work and active generated-paper/feedback reservations with insertion of the new reservation. Existing tables remain authoritative, avoiding a second counter that can drift on network failures. Worker failure state restores capacity independently of browser polling; pending/failed feedback remains unreadable as a score. Synchronous reservations use bounded crash leases. Old web daily-admission counters are ignored; web burst limits and the separate site-wide provider-call budget remain. Rollout order is backend then web; there is no schema change.
+
+Web functions are pinned to Singapore (`sin1`) to colocate with Neon `ap-southeast-1`, using one region compatible with the existing hosting plan. React request-scoped memoization deduplicates server-render session reads without retaining identities across requests. Generic database initialisation performs no seed writes; a retryable, shared promise seeds editorial guides only for Journal reads. Shared navigation opts out of eager prefetching to reduce database contention. The public curriculum fetch uses Next.js server data caching with a one-hour revalidation window; outgoing API responses and errors remain `no-store`. No private paper, identity, quota or mutation results enter that cache.
+
 Database clients do not send `statement_timeout` in PostgreSQL startup parameters, which Neon pooling rejects. Backend connections, web statements/batches/transactions and Vercel schema checks set a 10-second timeout with `SET LOCAL` in the same transaction as their queries, so pooled connections retain the limit without leaking session state.
 
 The web build uses Next.js 16.4.0 with the matching `eslint-config-next` 16.4.0 configuration and ESLint 9. The committed npm lockfile supports strict `npm ci` installation on Vercel without peer-dependency overrides.

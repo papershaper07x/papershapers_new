@@ -6,14 +6,15 @@ import json
 import logging
 import os
 import time
-import uuid
 from datetime import UTC, datetime
 
 from .curriculum import validate_selection
 from .database import Database
-from .llm_router import LLMRouter
+from .llm_router import LLMRouter, GenerationUnavailableError
 from .schemas import StudyPaperRequest
 from .study import generate_paper
+from .study_quota import reserve_generation
+from .llm_budget import BudgetExhaustedError
 from .observability import event, elapsed, request_id, valid_trace_id
 
 logger = logging.getLogger(__name__)
@@ -45,10 +46,7 @@ def enqueue(database: Database, router: LLMRouter, request: StudyPaperRequest) -
     else:
         selected = validate_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject, request.chapters)
         request = request.model_copy(update={"subject": selected["subject"], "chapters": selected["chapters"]})
-    job_id = str(uuid.uuid4())
-    with database.connect() as db:
-        db.execute("INSERT INTO generated_papers (id, user_id, paper_size, board, grade, subject, chapters_json, provider, status, paper_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                   (job_id, request.user_id, request.paper_size, request.board, request.grade, request.subject, json.dumps(request.chapters), "pending", "job-queued", json.dumps({"request": request.model_dump(), "trace_id": request_id.get()}), datetime.now(UTC).isoformat()))
+    job_id = reserve_generation(database, request, queued=True)
     event("generation.job", operation="study.generation", outcome="queued")
     wake_worker()
     return {"id": job_id, "status": "queued"}
@@ -63,9 +61,15 @@ def job_status(database: Database, job_id: str, user_id: str) -> dict | None:
     if state == "generated":
         return {"id": job_id, "status": "ready", "paper_id": job_id}
     if state == "job-failed":
-        trace_id = json.loads(row["paper_json"]).get("trace_id")
+        metadata = json.loads(row["paper_json"])
+        trace_id = metadata.get("trace_id")
         reference = f" Support reference: {valid_trace_id(trace_id)}." if trace_id else ""
-        return {"id": job_id, "status": "failed", "error": "We couldn’t finish this paper. Please try again." + reference}
+        messages = {
+            "provider-budget": "The site's AI provider allowance is exhausted. This is separate from your account allowance. Please try after the site allowance resets.",
+            "provider-unavailable": "The AI providers could not produce a valid paper. The service needs its provider configuration or availability checked before retrying.",
+        }
+        message = messages.get(metadata.get("failure"), "We couldn’t finish this paper. Please try again.")
+        return {"id": job_id, "status": "failed", "error": message + " This failed request did not use your daily AI allowance." + reference}
     return {"id": job_id, "status": "queued" if state == "job-queued" else "generating"}
 
 
@@ -110,7 +114,10 @@ async def run_next(database: Database, router: LLMRouter) -> bool:
     except Exception as error:
         event("generation.job", operation="study.generation", outcome="failed", duration_ms=elapsed(started))
         with database.connect() as db:
-            db.execute("UPDATE generated_papers SET status = 'job-failed' WHERE id = ? AND status = ?", (row["id"], claim))
+            metadata = json.loads(row["paper_json"])
+            site_budget_exhausted = isinstance(error.__cause__, BudgetExhaustedError) and error.__cause__.scope == "site"
+            metadata["failure"] = "provider-budget" if site_budget_exhausted else "provider-unavailable" if isinstance(error, GenerationUnavailableError) else "generation-failed"
+            db.execute("UPDATE generated_papers SET status = 'job-failed', paper_json = ? WHERE id = ? AND status = ?", (json.dumps(metadata), row["id"], claim))
     finally:
         request_id.reset(trace_token)
     return True

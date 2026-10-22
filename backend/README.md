@@ -20,6 +20,10 @@ Useful commands:
 
 ## Configuration
 
+The PostgreSQL adapter escapes literal SQL percent signs before converting question-mark bind parameters for psycopg. This is required for the worker's `LIKE 'job-running:%'` query; without it, PostgreSQL jobs can remain queued although startup/health succeeds. `npm run test:postgres:study` exercises the worker over an isolated local PostgreSQL-compatible socket with mocked generation.
+
+Daily Study admission is enforced here from account-owned generated-paper and attempt rows, with an atomic per-account reservation before provider work. Failed jobs and feedback do not use the five daily slots; active jobs reserve capacity, and completed results remain charged. Synchronous crash reservations have bounded leases. This is independent of the site's persistent provider-call ceiling, which still charges failed outbound calls. Deploy this backend before deploying the web proxy that stops charging its old daily attempt counter. Existing tables/grants suffice; no migration or blanket quota reset is required.
+
 Neon pooled runtime URLs are supported. The database adapter applies its 10-second statement timeout with `SET LOCAL` inside each transaction, rather than sending unsupported startup options to the pooler. Keep using the restricted runtime role; this fix does not require changing database credentials.
 
 `backend/.env.example` is the complete configuration contract. `backend/.env` is local-only and ignored by Git.

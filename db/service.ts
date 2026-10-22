@@ -21,14 +21,18 @@ export type TestAttendee = { id: string; room_id: string; name: string; roll_num
 export type UserRoleProfile = { role: "student" | "teacher"; institution: string; verified: boolean };
 
 
-let schemaReady = false;
-
 export async function ensureDatabase() {
-  if (schemaReady) return getDb();
-  const db = getDb();
-  await seedCommunityGuides(db);
-  schemaReady = true;
-  return db;
+  return getDb();
+}
+
+let guidesReady: Promise<void> | undefined;
+
+async function ensureCommunityGuides(db: Awaited<ReturnType<typeof getDb>>) {
+  guidesReady ??= seedCommunityGuides(db).catch((error) => {
+    guidesReady = undefined;
+    throw error;
+  });
+  await guidesReady;
 }
 
 const communityGuides = [
@@ -190,6 +194,7 @@ export async function createContactSubmission(input: { name: string; email: stri
 
 export async function listPublishedCommunityPosts() {
   const db = await ensureDatabase();
+  await ensureCommunityGuides(db);
   const result = await db.prepare(`SELECT id, author_id, author_label, title, slug, summary, body, status, is_internal, created_at, published_at
     FROM community_posts WHERE status = 'published' ORDER BY published_at DESC, created_at DESC LIMIT 36`).all<CommunityPost>();
   return result.results;
@@ -197,6 +202,7 @@ export async function listPublishedCommunityPosts() {
 
 export async function getPublishedCommunityPost(slug: string) {
   const db = await ensureDatabase();
+  await ensureCommunityGuides(db);
   return db.prepare(`SELECT id, author_id, author_label, title, slug, summary, body, status, is_internal, created_at, published_at
     FROM community_posts WHERE slug = ? AND status = 'published' LIMIT 1`).bind(slug).first<CommunityPost>();
 }

@@ -1,5 +1,7 @@
 # Noticeboard portal
 
+Shared header and footer links navigate on demand instead of automatically prefetching unrelated pages. Web functions run near the Singapore Neon database; account and session access no longer triggers Study editorial seed writes. Private marketplace responses remain uncached.
+
 ## Product boundary
 Local offers, events, classes, ordinary services, community activities and ideas. Public browsing does not require login. Posting requires an account, adult/policy acknowledgement, and safety review. Shared identity supports Google verified-email publication; password-only posters stay pending for operator review.
 

@@ -4,7 +4,9 @@ from .database import Database
 
 
 class BudgetExhaustedError(RuntimeError):
-    pass
+    def __init__(self, message: str, *, scope: str = "site"):
+        super().__init__(message)
+        self.scope = scope
 
 
 def reserve_provider_call(database: Database, daily_limit: int, monthly_limit: int, now: datetime | None = None) -> None:

@@ -17,6 +17,7 @@
     "prebuild": "node scripts/prepare-hosted-build.mjs",
     "android:build": "powershell -NoProfile -ExecutionPolicy Bypass -File mobile/android/build.ps1",
     "test:e2e:marketplace": "node scripts/marketplace-e2e.mjs",
+    "test:postgres:study": "node scripts/study-quota-postgres-test.mjs",
     "audit:deployment": "node scripts/audit-deployment.mjs"
   },
   "dependencies": {

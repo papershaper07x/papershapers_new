@@ -28,7 +28,10 @@ class PostgresConnection:
         converted = query.replace("INSERT OR IGNORE INTO", "INSERT INTO")
         if "INSERT OR IGNORE INTO" in query and "ON CONFLICT" not in converted.upper():
             converted = converted.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
-        return converted.replace("?", "%s")
+        # psycopg parses percent signs whenever parameters are supplied, even
+        # inside SQL string literals such as LIKE 'job-running:%'. Escape SQL
+        # literals first, then introduce the driver's parameter placeholders.
+        return converted.replace("%", "%%").replace("?", "%s")
 
     def execute(self, query: str, params: tuple[Any, ...] = ()) -> Any:
         return self.connection.execute(self._query(query), params)

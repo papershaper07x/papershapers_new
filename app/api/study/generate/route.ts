@@ -1,7 +1,6 @@
 import { rejectCrossOrigin } from "../../../../lib/request-safety";
 import { tracedRoute } from "../../../../lib/observability";
 import { withinRequestLimit } from "../../../../lib/request-limit";
-import { dailyStudyQuota } from "../../../../lib/study-quota";
 export const maxDuration = 60;
 
 import { userFromRequest } from "../../../../lib/auth";
@@ -22,14 +21,12 @@ async function handlePOST(request: Request) {
   if (!await withinRequestLimit("study-generation", user.id, generationAllowance(paid), STUDY_PLANS.windowSeconds)) {
     return Response.json({ error: "Generation requests are arriving too quickly. Wait for the next 10-minute window." }, { status: 429, headers: { "Retry-After": String(STUDY_PLANS.windowSeconds) } });
   }
-  const quota = await dailyStudyQuota(user.id);
-  if (quota) return quota;
   try {
     const result = await backendFetch<{ job: { id: string; status: string } }>("/v1/study/generation-jobs", { method: "POST", signal: AbortSignal.timeout(15_000), body: JSON.stringify({ user_id: user.id, mode: body.mode || "practice", academic_session: body.academicSession || "2026-27", paper_size: body.paperSize, board: body.board || "CBSE", grade: body.grade, subject: body.subject, chapters: body.chapters || [], focus: body.focus }) });
     return Response.json(result, { status: 202 });
   } catch (error) {
     const message = error instanceof BackendUnavailableError ? "Paper generation is temporarily unavailable. Please try again shortly." : error instanceof Error ? error.message : "Paper generation failed.";
-    return Response.json({ error: message }, { status: error instanceof BackendResponseError ? error.status : 503 });
+    return Response.json({ error: message }, { status: error instanceof BackendResponseError ? error.status : 503, headers: error instanceof BackendResponseError && error.retryAfter ? { "Retry-After": error.retryAfter } : undefined });
   }
 }
 

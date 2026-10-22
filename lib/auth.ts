@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { findUserBySession } from "../db/service";
 
 export const SESSION_COOKIE = "ps_session";
@@ -41,12 +42,12 @@ export async function verifyPassword(password: string, salt: string, expectedHas
   return mismatch === 0;
 }
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async function getCurrentUser() {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   return findUserBySession(await sha256(token));
-}
+});
 
 export function sessionCookie(token: string, requestUrl: string, expires: Date) {
   const host = new URL(requestUrl).hostname;

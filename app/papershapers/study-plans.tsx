@@ -12,7 +12,7 @@ export function StudyPlans() {
       <article><p className="kicker">Study Plus</p><h3>More practice. Less waiting.</h3><p className="billing-price">{config.checkoutEnabled && limits ? `₹${config.amount / 100} / 30 days` : "Payments coming soon"}</p><p>The same study features, with priority in the generation queue.</p><p>{limits ? `Up to ${STUDY_PLANS.plus} generation requests per 10-minute window.` : "A higher burst allowance becomes available when short-window controls are enabled."} One payment for 30 days. No automatic renewal.</p><a className="text-link" href="/papershapers/membership">Explore Study Plus →</a></article>
     </div>
     <p>Optional burst limits count generation requests, including unsuccessful requests, and reset in fixed 10-minute windows. AI availability and completion times vary. Older free requests receive queue protection.</p>
-    <p>All accounts have a safety limit of {DAILY_AI_ALLOWANCE} AI requests per account per day across paper generation and AI feedback, including failed requests. It resets at 00:00 UTC (05:30 India time). Site-wide AI allowances also apply. Saved papers and results remain available without using this allowance.</p>
+    <p>All accounts have {DAILY_AI_ALLOWANCE} daily AI slots shared by completed papers, completed feedback, and requests still running. Failed requests do not count. It resets at 00:00 UTC (05:30 India time). Site-wide AI provider allowances also apply. Saved papers and results remain available without using another slot.</p>
     <p>Prefer to support without upgrading? <a className="text-link" href="/papershapers/membership#contribute">Make a voluntary contribution →</a> Contributions do not unlock Study Plus.</p>
   </section>;
 }

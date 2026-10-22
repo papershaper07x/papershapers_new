@@ -50,6 +50,12 @@ Use PostgreSQL for persisted application data. SQLite is an offline backend test
 
 ## Database and deployment
 
+Quota fix rollout: deploy Render before Vercel. Daily account allowance now counts backend-owned completed work and active reservations; failed work releases capacity and old web attempt counters are ignored. No migration or manual counter deletion is required. The site-wide provider-call budget still counts outbound failures and can independently pause generation; see `docs/AI_COST_CONTROLS.md`.
+
+The same release fixes PostgreSQL worker queries containing literal SQL percent wildcards. Run `npm run test:postgres:study` after installing backend Python dependencies: it uses disposable local PGlite over the PostgreSQL wire protocol to test the Python worker, quota admission and failure recovery without contacting Neon or AI providers.
+
+Web functions run in Vercel Singapore (`sin1`), near the current Neon `ap-southeast-1` database. Change this single region if the database moves. Shared navigation avoids automatic page prefetching; Study has a streamed loading state. Session lookups are deduplicated only within a server render, never cached between users. Editorial guide seeding runs only when Journal content is read, not during sign-in or other database access. Public curriculum backend responses are cached on the server for one hour; API responses remain `no-store`, including errors and private work. Redeploy Vercel to activate these optimisations; the build machine may still report `iad1` because build and function regions differ.
+
 Neon pooled connections use transaction-local statement timeouts in both the web application and backend. If an older deployment fails with `unsupported startup parameter ... statement_timeout`, deploy the updated code on Render and Vercel; keep the existing pooled runtime URLs.
 
 Use a separate Neon branch for preview. Apply migrations through 0013 with an operator/direct credential, then grant restricted runtime roles. The migration runner prefers MIGRATION_DATABASE_URL, serialises runners and commits atomically. Reapplied idempotent migrations can still take schema locks; review maintenance timing.

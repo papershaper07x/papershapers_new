@@ -98,7 +98,7 @@ class LLMRouter:
         for offset in range(len(keys)):
             if remaining is not None:
                 if remaining[0] <= 0:
-                    raise BudgetExhaustedError("The AI retry limit was reached. Please try again later.")
+                    raise BudgetExhaustedError("The AI retry limit was reached. Please try again later.", scope="retry")
                 remaining[0] -= 1
             index = (start + offset) % len(keys)
             started = time.perf_counter()

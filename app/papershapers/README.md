@@ -1,5 +1,7 @@
 # Study Lab portal
 
+Performance: Study navigation streams a lightweight loading message, and shared navigation/search links do not eagerly fetch unrelated pages. Session reads deduplicate within one server render. The public chapter catalogue is cached on the web server for up to one hour; backend validation remains authoritative when generating a paper. Journal reads initialise editorial guides independently of account/session checks. Generation and feedback retain their server-enforced quotas; a `429` response is a limit response, not a loading failure. Free backend cold starts can still delay uncached backend requests.
+
 ## Product boundary
 
 Study Lab helps learners and educators configure focused practice, turn their own material into active revision, and organise research. It owns educational content and generation workflows; it does not own local advertising.
@@ -110,7 +112,7 @@ The Study header includes Find your way: local search over paper creation, study
 
 
 ## Daily AI safety allowance
-Every account has five AI requests per UTC day shared by paper generation and AI feedback (failed requests count), even if optional burst limits are disabled. Reset: 00:00 UTC / 05:30 India time. Saved work stays readable. Plus does not bypass this daily safety allowance or the backend site-wide ceilings. Quota exhaustion offers a reset time rather than a payment upsell. See docs/AI_COST_CONTROLS.md.
+Every account has five daily AI slots shared by completed papers, completed feedback and active requests. Failed generation/feedback does not consume a slot. The backend enforces this from durable account-owned rows even if web burst limits are disabled; old attempt-only daily counters no longer block retries. Reset: 00:00 UTC / 05:30 India time. Saved work stays readable. Plus does not bypass the allowance or the separate site-wide provider ceiling. Deploy the updated backend before the web proxy. No schema migration is needed. See docs/AI_COST_CONTROLS.md.
 
 
 ## Support tracing

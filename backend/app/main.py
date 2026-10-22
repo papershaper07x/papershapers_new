@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .config import Settings
 from .database import Database
@@ -28,6 +29,7 @@ from .schemas import StudyAttemptRequest, StudyPaperFeedbackRequest, StudyPaperR
 from .study import generate_paper, get_attempt, get_paper, list_papers, submit_attempt, submit_paper_feedback, student_paper
 from .curriculum import catalog
 from .study_jobs import enqueue, job_status, worker
+from .study_quota import DailyQuotaExceeded
 from .observability import event, elapsed, request_id, valid_trace_id
 
 # HTTPX INFO logs include full URLs/query strings. Our trace events replace them.
@@ -55,6 +57,11 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Paper Shapers local backend", version="0.1.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=list(settings.allowed_origins), allow_credentials=False, allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Backend-Secret"])
+
+
+@app.exception_handler(DailyQuotaExceeded)
+async def daily_quota_error(_: Request, error: DailyQuotaExceeded):
+    return JSONResponse({"detail": str(error)}, status_code=429, headers={"Retry-After": str(error.retry_after)})
 
 
 @app.middleware("http")

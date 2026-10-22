@@ -2,10 +2,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from backend.app.database import Database
+from backend.app.database import Database, PostgresConnection
 
 
 class PooledConnectionTests(unittest.TestCase):
+    def test_sql_wildcards_are_escaped_before_driver_placeholders(self):
+        query = "SELECT id FROM generated_papers WHERE status LIKE 'job-running:%' AND user_id = ?"
+        self.assertEqual(PostgresConnection._query(query), "SELECT id FROM generated_papers WHERE status LIKE 'job-running:%%' AND user_id = %s")
+
     def test_timeout_and_query_share_transaction_then_commit(self):
         connection = MagicMock()
         with patch("psycopg.connect", return_value=connection) as connect:

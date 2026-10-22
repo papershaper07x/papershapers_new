@@ -2,6 +2,12 @@
 
 ## 2026-10-22
 
+- Fixed the Python PostgreSQL adapter's unescaped SQL percent wildcards, which could prevent the generation worker from claiming queued papers. Added an isolated PostgreSQL-wire worker/quota regression command.
+
+- Fixed failed paper requests exhausting account allowance before any paper was generated. Backend admission now counts completed work and active reservations per account, releases failed work automatically, preserves retry delays and distinguishes provider-budget failures. Existing incorrectly charged web daily counters are ignored; no database reset/migration is needed. Deploy backend before web.
+
+- Reduced web latency by colocating Vercel functions with Neon in Singapore, keeping editorial seed writes off authentication paths, deduplicating session reads per render, caching public curriculum fetches for one hour, and reducing automatic navigation prefetches. Added streamed Study loading feedback without changing AI quotas.
+
 - Fixed Render startup and Vercel database access with Neon pooling by moving statement timeouts from connection startup parameters into the transaction performing each operation.
 
 - Fixed Vercel dependency installation by aligning `eslint-config-next` with Next.js 16.4.0 and ESLint 9, and refreshing the npm lockfile without peer-dependency bypasses.

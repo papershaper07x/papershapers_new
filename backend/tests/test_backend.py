@@ -203,7 +203,10 @@ class AssessmentSafetyTests(unittest.TestCase):
             with self.assertRaises(GenerationUnavailableError):
                 asyncio.run(submit_attempt(database, real_router, saved["id"], attempt))
             with database.connect() as db:
-                self.assertEqual(db.execute("SELECT COUNT(*) AS count FROM paper_attempts").fetchone()["count"], 0)
+                self.assertEqual(db.execute("SELECT COUNT(*) AS count FROM paper_attempts WHERE status = 'reviewed'").fetchone()["count"], 0)
+                failed = db.execute("SELECT status, score_json FROM paper_attempts").fetchone()
+                self.assertEqual(failed['status'], 'assessment-failed')
+                self.assertEqual(failed['score_json'], '{}')
             for ids in [["Q1", "Q1"], ["unknown"]]:
                 invalid = StudyAttemptRequest(user_id="owner", answers=[{"question_id": qid, "answer": "4"} for qid in ids])
                 with self.assertRaises(ValueError):

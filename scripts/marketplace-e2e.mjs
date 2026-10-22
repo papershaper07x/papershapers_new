@@ -13,7 +13,14 @@ for(const name of (await readdir('database/migrations')).filter(name=>name.endsW
 const socket=new PGLiteSocketServer({db,host:'127.0.0.1',port:55439,maxConnections:10});
 await socket.start();
 const databaseUrl='postgresql://postgres:postgres@127.0.0.1:55439/postgres';
+let catalogCalls=0;
 const backend=createServer(async(request,response)=>{
+ if(request.url==='/v1/study/catalog'){
+  catalogCalls++;
+  response.setHeader('Content-Type','application/json');
+  if(catalogCalls===1){response.writeHead(503);response.end('{}');return;}
+  response.end(JSON.stringify({source:'isolated test fixture',classes:[{grade:'10',class_label:'Class 10',subjects:[]}]}));return;
+ }
  if(request.url!=='/v1/marketplace/review'){response.writeHead(404);response.end('{}');return;}
  let raw='';for await(const chunk of request)raw+=chunk;
  const value=JSON.parse(raw);
@@ -50,6 +57,16 @@ try{
  assert.ok(preview.includes('Paper Shapers home'));assert.ok(!preview.includes('portal-switch'));passed('empty catalogue shows labelled non-bookable demo and portal navigation');
  assert.equal((await request('/api/marketplace/notices','POST',fixture)).status,401);passed('anonymous posting blocked');
  const owner=await account('Owner'),other=await account('Other');passed('account creation and shared session cookies');
+ assert.equal((await db.query("SELECT COUNT(*)::int AS n FROM community_posts WHERE is_internal=1")).rows[0].n,0);
+ passed('account and session access perform no editorial seed writes');
+ const journalPage=await request('/papershapers/journal','GET',undefined,owner);assert.equal(journalPage.status,200);
+ assert.ok((await journalPage.text()).includes('A calm way to use a practice paper'));
+ assert.equal((await db.query("SELECT COUNT(*)::int AS n FROM community_posts WHERE is_internal=1")).rows[0].n,3);
+ passed('Journal reads still initialise the editorial guides');
+ const failedCatalog=await request('/api/study/catalog');assert.equal(failedCatalog.status,503);assert.match(failedCatalog.headers.get('cache-control'),/no-store/);
+ const catalogResponse=await request('/api/study/catalog');assert.equal(catalogResponse.status,200);assert.match(catalogResponse.headers.get('cache-control'),/no-store/);
+ assert.equal((await request('/api/study/catalog')).status,200);assert.equal(catalogCalls,2);
+ passed('public catalogue retries failures and caches successful backend data without caching API responses');
  const journal={title:'Dummy study revision note',summary:'Dummy test summary describing a useful revision routine.',body:'Dummy test material. This is not a real student publication. Review a short practice paper, then choose one topic to revisit with your teacher before another attempt.'};
  assert.equal((await request('/api/community/posts','POST',journal)).status,401);assert.equal((await request('/api/community/posts','POST',journal,owner,'https://evil.example')).status,403);
  assert.equal((await request('/api/community/posts','POST',{...journal,body:'x'.repeat(17000)},owner)).status,413);
