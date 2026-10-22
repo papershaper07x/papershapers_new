@@ -13,11 +13,11 @@ A local green build does not certify production readiness. Commercial hosting el
 
 ## Products and stable URLs
 
-| Host | Root behavior | Stable product routes |
-| --- | --- | --- |
-| papershapers.in | Core homepage | / |
-| study.papershapers.in | Internal rewrite to Study | /papershapers, /syllabus |
-| marketplace.papershapers.in | Internal rewrite to Nearby | /noticeboard |
+| Host                        | Root behavior              | Stable product routes    |
+| --------------------------- | -------------------------- | ------------------------ |
+| papershapers.in             | Core homepage              | /                        |
+| study.papershapers.in       | Internal rewrite to Study  | /papershapers, /syllabus |
+| marketplace.papershapers.in | Internal rewrite to Nearby | /noticeboard             |
 
 The shared logo returns to core Home; portal navigation stays inside that portal. Public browsing is allowed. Study private work, teacher hosting, marketplace posting, saving, reporting and reservations use the appropriate account/session checks. Student room entry has its own scoped attendee flow.
 
@@ -88,16 +88,16 @@ The deployment trace audit checks a 200 MiB review budget and private/backend ma
 
 ## Repository map
 
-| Path | Responsibility |
-| --- | --- |
-| app/components, app/globals.css | Shared brand, layout and responsive styles |
-| app/papershapers, app/syllabus | Study, Journal, curriculum, rooms and private workflows |
-| app/noticeboard | Nearby discovery, posting, details and local desk |
-| app/api | Same-origin web adapters and authenticated mutations |
-| backend/app | FastAPI generation, queue, judge and provider budgets |
-| db, database/migrations | PostgreSQL adapter, service contracts and additive schema |
-| scripts | Migration, preflight, moderation, packaging and isolated tests |
+| Path                             | Responsibility                                                    |
+| -------------------------------- | ----------------------------------------------------------------- |
+| app/components, app/globals.css  | Shared brand, layout and responsive styles                        |
+| app/papershapers, app/syllabus   | Study, Journal, curriculum, rooms and private workflows           |
+| app/noticeboard                  | Nearby discovery, posting, details and local desk                 |
+| app/api                          | Same-origin web adapters and authenticated mutations              |
+| backend/app                      | FastAPI generation, queue, judge and provider budgets             |
+| db, database/migrations          | PostgreSQL adapter, service contracts and additive schema         |
+| scripts                          | Migration, preflight, moderation, packaging and isolated tests    |
 | mobile/android, public/downloads | Deliberate Android source/public signed artifact; no private keys |
-| docs/production | Current launch, promotion, monetisation and growth instructions |
+| docs/production                  | Current launch, promotion, monetisation and growth instructions   |
 
 Additional references: [system design](docs/SYSTEM_DESIGN.md), [resource bounds](docs/RESOURCE_PLAN.md), [database](database/README.md), [Study](app/papershapers/README.md), [Nearby](app/noticeboard/README.md), [billing](docs/PAYMENT_ACTIVATION.md), [observability](docs/OBSERVABILITY.md), and [Vercel deployment](docs/production/02-vercel/README.md).
