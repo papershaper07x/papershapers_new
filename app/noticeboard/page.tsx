@@ -1,10 +1,10 @@
+import { pageMetadata } from "../../lib/seo";
 import type {Metadata} from 'next';
 import {SiteFooter,SiteHeader} from '../components/SiteChrome';
 import {LocalBoard,type Notice} from './local-board';
 import {getCurrentUser} from '../../lib/auth';
-import {marketplaceUrl} from '../../lib/marketplace-seo';
 import {getDb} from '../../db';
-export const metadata:Metadata={title:'Local events, offers and community notices',description:'Find local events, classes, services and offers by area. Browse freely or sign in to share a notice after safety review.',alternates:{canonical:marketplaceUrl('/noticeboard')}};
+export const metadata: Metadata = pageMetadata('/noticeboard', 'Local events, offers and community notices', 'Find local events, classes, services and offers by area. Browse freely or sign in to share a notice after safety review.');
 export default async function NoticeboardPage(){
  const user=await getCurrentUser();
  let posts:Notice[]=[];let catalogueAvailable=true;

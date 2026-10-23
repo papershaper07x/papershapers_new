@@ -1,9 +1,9 @@
+import { pageMetadata } from "../../../../lib/seo";
 import type {Metadata} from 'next';
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {SiteHeader,SiteFooter} from '../../../components/SiteChrome';
 import {localGuides} from '../../guides-content';
-import {marketplaceUrl} from '../../../../lib/marketplace-seo';
 export function generateStaticParams(){return localGuides.map(guide=>({slug:guide.slug}));}
-export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const guide=localGuides.find(item=>item.slug===slug);if(!guide)return {};return {title:guide.title,description:guide.summary,alternates:{canonical:marketplaceUrl(`/noticeboard/guides/${slug}`)},robots:guide.dummy?{index:false,follow:true}:undefined};}
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;const guide=localGuides.find(item=>item.slug===slug);if(!guide)notFound();return {...pageMetadata(`/noticeboard/guides/${encodeURIComponent(slug)}`,guide.title,guide.summary),robots:guide.dummy?{index:false,follow:true}:undefined};}
 export default async function GuidePage({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const guide=localGuides.find(item=>item.slug===slug);if(!guide)notFound();return <main className="local-page"><SiteHeader portal="marketplace"/><article className="page-shell market-editorial market-reading"><Link href="/noticeboard/guides">← All guides</Link><p className="kicker">{guide.dummy?'Dummy article · fictional example':'Neighbourhood guide'}</p><h1>{guide.title}</h1><p className="hero-lede">{guide.summary}</p>{guide.dummy&&<aside className="dummy-notice">This is a dummy article. It describes no real event, business, offer or venue.</aside>}{guide.sections.map(section=><section key={section.heading}><h2>{section.heading}</h2>{section.paragraphs.map(text=><p key={text.slice(0,50)}>{text}</p>)}</section>)}{guide.dummy&&<p className="dummy-notice">Dummy article: all activity described here is fictional and for demonstration only.</p>}<Link className="text-link" href="/noticeboard">Explore the local board →</Link></article><SiteFooter portal="marketplace"/></main>;}

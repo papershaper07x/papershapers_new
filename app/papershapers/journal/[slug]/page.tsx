@@ -1,3 +1,4 @@
+import { pageMetadata } from "../../../../lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -5,8 +6,10 @@ import { getPublishedCommunityPost } from "../../../../db/service";
 import { StudyInformationLayout } from "../../information-layout";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const post = await getPublishedCommunityPost((await params).slug);
-  return post ? { title: post.title, description: post.summary } : { title: "Journal note" };
+  const { slug } = await params;
+  const post = await getPublishedCommunityPost(slug);
+  if (!post) notFound();
+  return pageMetadata(`/papershapers/journal/${encodeURIComponent(slug)}`, post.title, post.summary);
 }
 
 export default async function JournalPostPage({ params }: { params: Promise<{ slug: string }> }) {

@@ -30,7 +30,7 @@ test('preview robots, sitemap and response headers suppress discovery without da
  try{
   process.env.VERCEL='1';process.env.VERCEL_ENV='preview';
   const [{default:robots},{default:sitemap},{default:config}]=await Promise.all([import('../app/robots.ts'),import('../app/sitemap.ts'),import('../next.config.ts')]);
-  assert.equal(robots().rules.disallow,'/');assert.deepEqual(await sitemap(),[]);
+  assert.equal((await robots()).rules.disallow,'/');assert.deepEqual(await sitemap(),[]);
   assert.ok((await config.headers()).some(rule=>rule.source==='/:path*'&&rule.headers.some(header=>header.key==='X-Robots-Tag'&&header.value.includes('noindex'))));
  }finally{for(const [key,value] of Object.entries(previous)){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
 });

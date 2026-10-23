@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     manifest: "/manifest.webmanifest",
-    appleWebApp: { capable: true, title: "Study", statusBarStyle: "default" },
+    appleWebApp: { capable: true, title: "Paper Shapers", statusBarStyle: "default" },
     metadataBase: new URL(origin),
     title: { default: "Paper Shapers — A house of useful ideas", template: "%s · Paper Shapers" },
     description: "Practical digital products for learning and local discovery.",

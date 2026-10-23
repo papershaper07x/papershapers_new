@@ -52,6 +52,8 @@ class Settings:
     llm_daily_call_limit: int = 20
     llm_monthly_call_limit: int = 100
     llm_enabled: bool = True
+    groq_min_interval_seconds: float = 60.0
+    gemini_thinking_budget: int = 1024
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -80,4 +82,6 @@ class Settings:
             llm_daily_call_limit=int(os.getenv("LLM_DAILY_CALL_LIMIT", "20")),
             llm_monthly_call_limit=int(os.getenv("LLM_MONTHLY_CALL_LIMIT", "100")),
             llm_enabled=os.getenv("LLM_ENABLED", "true").lower() == "true",
+            groq_min_interval_seconds=max(0, min(120, float(os.getenv("GROQ_MIN_INTERVAL_SECONDS", "60")))),
+            gemini_thinking_budget=max(0, min(4096, int(os.getenv("GEMINI_THINKING_BUDGET", "1024")))),
         )

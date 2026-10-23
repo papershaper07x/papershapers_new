@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { publicRedirect } from "./lib/seo";
 
 function pageGroup(path: string) {
   if (path === "/") return "home";
@@ -12,13 +13,12 @@ function pageGroup(path: string) {
 }
 
 export function proxy(request: NextRequest) {
-  // Map only domain roots; all existing portal and API paths stay stable.
-  if (request.nextUrl.pathname === "/") {
-    const portal = request.nextUrl.hostname === "marketplace.papershapers.in" ? "/noticeboard" : request.nextUrl.hostname === "study.papershapers.in" ? "/papershapers" : null;
-    if (portal) {
-      const url = request.nextUrl.clone();
-      url.pathname = portal;
-      return NextResponse.rewrite(url);
+  if (request.method === "GET" || request.method === "HEAD") {
+    const destination = publicRedirect(request.nextUrl.host, request.nextUrl.pathname);
+    if (destination) {
+      const url = new URL(destination);
+      url.search = request.nextUrl.search;
+      return NextResponse.redirect(url, 308);
     }
   }
   // Count incoming page requests, not people or completed page views. Skip prefetch.
@@ -28,4 +28,4 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/", "/auth", "/papershapers/:path*", "/syllabus/:path*", "/noticeboard/:path*"] };
+export const config = { matcher: ["/", "/privacy", "/terms", "/cookies", "/auth", "/papershapers/:path*", "/syllabus/:path*", "/noticeboard/:path*"] };

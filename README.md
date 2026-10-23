@@ -2,6 +2,14 @@
 
 Current production handoff: **22 October 2026**. One Next.js application contains core Home, Study and Nearby. The current target is **Vercel (web) + existing FastAPI worker service + Neon PostgreSQL**. No Netlify build adapter or migration path is required. Follow the Vercel guide below.
 
+## Local services with Neon
+
+The local web and API can use the same reviewed Neon database with separate restricted runtime accounts. Set the web `DATABASE_URL` in ignored `.env.local` and API `DATABASE_URL` in ignored `backend/.env`; keep their `BACKEND_SHARED_SECRET` values identical and the web `BACKEND_ORIGIN` pointed at the local API. Restart both services after changes. Keep the owner `MIGRATION_DATABASE_URL` only in `backend/.env` for explicit operator steps. Existing local database contents are not imported automatically. Restore only the `DATABASE_URL` entries from ignored environment-file backups to reverse a local connection switch, retaining the matched service secrets, without altering database records or hosted-role passwords.
+
+## Study generation troubleshooting
+
+If generation fails before contacting an AI provider, confirm that the API database has migration `0008_llm_budget` and its runtime grants. Keep `DATABASE_URL` restricted; place the owner connection only in local `backend/.env` as `MIGRATION_DATABASE_URL`. See [backend troubleshooting](backend/README.md#practice-generation-troubleshooting) for the reviewed migration and restart workflow. The planner now generates chapter-practice papers in validated batches; the paper view and A4 print layout use exam-style sections and right-margin marks. Official subject blueprints remain separate from adapted 40/80-mark chapter practice.
+
 ## Start here
 
 - [Production launch handbook](docs/production/README.md): ordered development, deployment, operations, SEO, marketing, ads and growth steps.
@@ -97,6 +105,10 @@ npm run test:e2e:marketplace
 The deployment trace audit checks a 200 MiB review budget and private/backend material; local Windows traces do not prove Linux/Vercel bundle size or hosted RSS. Real device, provider, Neon concurrency/grant/restore and payment acceptance remain separate gates.
 
 ## Repository map
+
+The [23 October 2026 SEO audit](docs/SEO_AUDIT_2026-10-23.md) records live root/Study/Nearby checks, canonical and sitemap findings, curriculum content issues, and the remaining Search Console/performance checks. It is an audit, not a record of deployed SEO fixes.
+
+The [SEO implementation runbook](docs/SEO_IMPLEMENTATION.md) covers public redirects, per-site sitemaps, offline curriculum discovery, source-based labels and external acceptance. Refresh discovery after curriculum changes with `python scripts/export-seo-curriculum.py`; verify the running site with `node scripts/audit-seo.mjs http://localhost:3000 work/seo-verification.json`.
 
 | Path                             | Responsibility                                                    |
 | -------------------------------- | ----------------------------------------------------------------- |

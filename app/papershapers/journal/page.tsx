@@ -1,3 +1,4 @@
+import { pageMetadata } from "../../../lib/seo";
 import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 import Link from "next/link";
@@ -5,10 +6,7 @@ import { ScrollReveal } from "../../components/ScrollReveal";
 import { listPublishedCommunityPosts } from "../../../db/service";
 import { StudyInformationLayout } from "../information-layout";
 
-export const metadata: Metadata = {
-  title: "Journal and community notes",
-  description: "Paper Shapers study notes, walkthroughs, and moderated student community posts for CBSE Classes 1–12.",
-};
+export const metadata: Metadata = pageMetadata('/papershapers/journal', 'Journal and community notes', 'Paper Shapers study notes, walkthroughs, and moderated student community posts for CBSE Classes 1–12.');
 
 function dateLabel(value: string | null) {
   return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value ?? "2026-09-29T00:00:00.000Z"));

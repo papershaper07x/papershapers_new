@@ -1,5 +1,7 @@
 # Noticeboard portal
 
+SEO: public board, safety, guide and approved-notice pages share canonical/social metadata on the marketplace host. Public aliases redirect without moving private posting/dashboard requests. Nearby has its own advertised sitemap and host-specific app identity; dummy guides remain noindex and excluded from discovery. See the [SEO runbook](../../docs/SEO_IMPLEMENTATION.md).
+
 Shared header and footer links navigate on demand instead of automatically prefetching unrelated pages. Web functions run near the Singapore Neon database; account and session access no longer triggers Study editorial seed writes. Private marketplace responses remain uncached.
 
 ## Product boundary

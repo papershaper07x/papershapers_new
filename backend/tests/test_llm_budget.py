@@ -88,3 +88,17 @@ class LLMBudgetTests(unittest.TestCase):
             asyncio.run(router.generate_json(system="s", prompt="p", fallback={}))
         self.assertEqual(router._gemini.await_count, 1)
         router._openai_compatible.assert_not_awaited()
+
+    def test_gemini_flash_reserves_output_tokens_for_complete_json(self):
+        router = self.router(llm_max_output_tokens=8192, gemini_model="gemini-2.5-flash", gemini_thinking_budget=4096)
+        response = MagicMock()
+        response.json.return_value = {"candidates": [{"content": {"parts": [{"text": "{}"}]}}]}
+        client = AsyncMock()
+        client.post.return_value = response
+        context = AsyncMock()
+        context.__aenter__.return_value = client
+        with patch("backend.app.llm_router.httpx.AsyncClient", return_value=context):
+            asyncio.run(router._gemini("system", "prompt", "test-only"))
+        config = client.post.call_args.kwargs["json"]["generationConfig"]
+        self.assertEqual(config["maxOutputTokens"], 8192)
+        self.assertEqual(config["thinkingConfig"]["thinkingBudget"], 2048)

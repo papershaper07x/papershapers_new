@@ -1,10 +1,26 @@
 # Paper Shapers system design
 
+## Public discovery — 23 October 2026
+
+`lib/seo.ts` maps public routes to their configured root/Study/Nearby origins and emits per-page canonical/social metadata. The proxy redirects known public GET/HEAD aliases with query preservation; authentication, APIs, mutations, private workflows and preview hosts retain their origin. Shared navigation uses explicit portal URLs. Organization/WebSite identity on the umbrella connects to the Study application; app manifests select identity by configured host.
+
+Per-site XML sitemaps partition the consolidated public URL list; each host advertises its corresponding file. A checked-in class/subject-only snapshot supplies discovery if the bounded live catalogue fetch fails or is empty, with a coarse fallback event. Operators refresh it on curriculum additions/removals. Runtime publication and expiry checks still control notices/journal content; private or fictional records never use the snapshot. Public noindex entry pages are crawlable so exclusion headers can be observed; API crawl blocking, authentication, no-store and preview suppression remain separate controls.
+
+The backend derives display/selection labels from explicit numbered textbook headings and uses natural chapter ordering. Original source records remain unchanged and legacy labels map to the same context. Uncertain figure/activity titles are marked for review. The scraper reuses the parser for new ingestion. See [SEO verification and external acceptance](SEO_IMPLEMENTATION.md); this introduces no database migration or paid dependency.
+
 ## Objective
 
 Build a recognisable umbrella brand that can launch several focused services cheaply, validate them independently, and extract successful products into subdomains or separate deployments without a front-end rewrite.
 
 ## Current system (phase 1)
+
+Local development services may connect to the existing Neon database with dedicated `papershapers_local_web_*` and `papershapers_local_api_*` roles. These roles receive explicit portal/runtime table operations and schema usage, without schema creation, role administration or hosted-role password changes. The local web/API shared secret must agree. A connection switch preserves local database contents and existing Neon records; it does not automatically import accounts, retire legacy tables, apply unrelated migrations, or change hosted deployment variables. Owner credentials stay out of web runtime configuration.
+
+
+Chapter-practice generation now assembles a deterministic question-slot contract in batches of six (up to seven when merging a final singleton). The server assigns IDs, section, selected chapter, marks and type; model content must satisfy MCQ, nested part, OR, diagram and exact-mark checks before persistence. Curriculum context is sampled across chapter text with a per-chapter budget so late selections retain context. The cache fingerprint includes the practice-format version, preventing recovery of older unconstrained output. Account reservations remain per paper, while each batch/retry consumes the existing site provider-call allowance. No new tables or dependencies are introduced.
+
+Configured alternative vendors receive a reserved opportunity inside the existing per-call attempt ceiling. Missing AI budget tables/grants fail as service configuration before vendor fallback, rather than disguising database errors as invalid provider output. Full practice execution is bounded to 660 seconds and half practice to 420, each with a 60-second crash lease margin. Browser polling tolerates those bounds. Rendering remains inside the Study portal; a paper-sheet view groups questions by section and supplies accessible diagrams, code and A4 print styling without client state shared across portals.
+
 
 The Python PostgreSQL adapter doubles literal SQL percent signs before introducing psycopg bind placeholders. The generation worker's status wildcard query is covered by a PostgreSQL-wire integration check, because SQLite-only tests cannot reveal driver placeholder parsing failures.
 
@@ -324,3 +340,11 @@ Deployment audit reads local Next NFT traces, flags backend/private source and a
 ## 22 October 2026 — Netlify retirement
 
 Removed netlify.toml and every NETLIFY-triggered build mutation/grant path. Prebuild validates Android artifacts and, on Vercel, configuration/existing schema only. Local builds never migrate based on a legacy host flag. No package dependency needed removal. Deployment remains repository-root Next.js on Vercel, separate existing Python worker, and restricted Neon runtime roles. Updated operator docs replace old build-time migration instructions; prior Netlify guides are retirement pointers. Hosted account/DNS/billing cleanup is an explicit post-acceptance checklist, not performed by this source change. Rollback uses a compatible Vercel release and separate DB recovery.
+
+Groq calls use a process-local async admission lock and configurable minimum start interval (60 seconds by default). This spaces batches without blocking the event loop or introducing dependencies. Provider call reservations still happen before network I/O, and attempt/site limits are retained. External rate limits remain authoritative across multiple processes; logs expose HTTP status codes without credentials or response bodies.
+
+Practice-format v3 checkpoints each accepted batch in `generated_paper_cache`, keyed by the existing brief fingerprint plus chapter-order hash. Resume validates every cached prefix against the current slot plan, diagrams, options, nested marks and prior accepted text. Invalid prefixes are discarded before fresh generation. No identity, attempt or user ID is stored in checkpoints, and partial papers remain absent from generated-paper listings. The normal full-paper plan merges its final singleton into a seven-question batch, reducing base calls from six to five. Once the full paper is validated and cached, its checkpoint is marked complete; resumed output carries a disclosed `batch-recovery` source and reused-question count. No schema migration is required.
+
+Board-mock jobs have a 1500-second execution limit and 30-minute browser polling window so twenty generation/verification calls can respect free-tier pacing; chapter-practice execution limits remain 420/660 seconds. These remain durable API-host jobs, not long-running serverless web requests.
+
+Case-study slots now include mandatory per-question JSON shapes with three subparts carrying 1/1/2 marks, rather than describing parts as an optional generic field. Gemini 2.5 Flash thinking is bounded by `GEMINI_THINKING_BUDGET` (default 1024, never more than one quarter of the existing output cap), leaving room for complete JSON; other model families keep their existing configuration.

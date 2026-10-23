@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { siteHref } from "../../lib/seo";
 import { useRef, useState } from "react";
 
 const destinations = [
@@ -32,7 +33,7 @@ export function StudyFinder() {
       <label htmlFor="study-destination">Where would you like to go?</label>
       <input id="study-destination" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Try chapters, rooms, or help…" autoComplete="off" aria-controls="study-destinations" />
       <p className="sr-only" role="status">{results.length} destinations found</p>
-      <ul id="study-destinations">{results.map((item) => <li key={item.href}><Link prefetch={false} href={item.href} onClick={() => { if (panel.current) panel.current.open = false; setQuery(""); }}><strong>{item.label}</strong><span>{item.detail}</span></Link></li>)}</ul>
+      <ul id="study-destinations">{results.map((item) => <li key={item.href}><Link prefetch={false} href={siteHref(item.href)} onClick={() => { if (panel.current) panel.current.open = false; setQuery(""); }}><strong>{item.label}</strong><span>{item.detail}</span></Link></li>)}</ul>
       {results.length === 0 && <p className="study-finder__empty">No matching destination. Try “paper”, “room”, or “help”, or <Link prefetch={false} href="/papershapers/contact">contact us</Link>.</p>}
       <p className="study-finder__hint">Search site destinations. Your papers and answers stay private.</p>
     </div>

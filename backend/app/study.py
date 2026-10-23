@@ -69,27 +69,164 @@ async def generate_paper(database: Database, router: LLMRouter, request: StudyPa
         request = request.model_copy(update={"paper_size": "full", "chapters": CHAPTERS[request.grade]})
         return _save_paper(database, request, paper, ",".join(paper["generation_providers"]), generation_source="fresh", job_id=job_id)
     selected = validate_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject, request.chapters)
+    if not selected["chapters"]:
+        raise ValueError("Choose at least one chapter to generate a practice paper")
     request = request.model_copy(update={"subject": selected["subject"], "chapters": selected["chapters"]})
     blueprint = _blueprint(request.paper_size)
     fallback = _fallback_paper(request, blueprint)
-    context = context_for_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject, request.chapters)
+    context = context_for_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject, request.chapters, limit_per_chapter=14000, total_limit=24000)
     guidance = paper_guidance_for_selection(router.settings.study_curriculum_csv_path, request.board, request.grade, request.subject)
     cache_key = _generation_cache_key(request, router.settings.study_generation_cache_version)
-    prompt = json.dumps({"task": "Create a curriculum-grounded practice paper as JSON using only the supplied local study context. Do not use template text. Use clean, short question IDs (e.g. 'Q1', 'Q2'). For math, chemistry, or physics, you MUST include standard mathematical symbols, formulas, and expressions using standard LaTeX math enclosed in $...$ (inline) or $$...$$ (block) so formulas and integration/differentiation are clearly visible. Use \\ce{...} chemistry notation inside math for chemical formulas and reactions. JSON-escape every LaTeX backslash. If a question is an MCQ, include a list of 'options'.", "diagram_guidance": DIAGRAM_GUIDANCE, "request": request.model_dump(), "class_label": selected["class_label"], "requested_total_marks": blueprint["total_marks"], "requested_time_minutes": blueprint["time_minutes"], "local_paper_setting_guidance": guidance or "No subject-specific local paper-setting guidance was supplied. Use a balanced assessment layout.", "local_study_context": context, "required_shape": {"title": "string", "board": "string", "grade": "string", "subject": "string", "paper_size": "half|full", "total_marks": "integer", "time_minutes": "integer", "instructions": ["string"], "questions": [{"id": "string", "section": "string", "chapter": "string", "marks": "number", "type": "string", "text": "string", "options": ["string"], "diagram": "optional supported diagram object", "answer_outline": "string"}], "is_demo": False}}, ensure_ascii=False)
-    def normalize_and_validate(candidate: dict[str, Any]) -> dict[str, Any]:
-        normalized = _normalise_generated_paper(candidate, request)
-        _validate_generated_paper(normalized, blueprint, request)
-        return normalized
-
     try:
-        result = await router.generate_json(system="You are an assessment designer. Return JSON only. Create original questions from the supplied local study context and local paper-setting guidance. Return every question, including section questions, in the top-level questions array. The sum of question marks must equal the requested total. A real model is required in normal operation: do not output illustrative, sample, placeholder, or template questions. Do not invent claims about official approval.", prompt=prompt, fallback=fallback, transform=normalize_and_validate)
+        paper, providers = await _generate_practice_batches(router, request, blueprint, fallback, context, guidance, database=database)
     except GenerationUnavailableError:
         cached = _load_cached_paper(database, cache_key)
         if cached is None:
             raise
         return _save_paper(database, request, cached, "cache", generation_source="cached-recovery", job_id=job_id)
-    _store_cached_paper(database, cache_key, result.value, result.provider, router.settings.study_generation_cache_hours)
-    return _save_paper(database, request, result.value, result.provider, generation_source="fresh", job_id=job_id)
+    _store_cached_paper(database, cache_key, paper, providers, router.settings.study_generation_cache_hours)
+    _store_cached_paper(database, _practice_checkpoint_key(request, router.settings.study_generation_cache_version), {"complete": True}, providers, router.settings.study_generation_cache_hours)
+    return _save_paper(database, request, paper, providers, generation_source="batch-recovery" if paper.get("reused_questions") else "fresh", job_id=job_id)
+
+
+def _practice_checkpoint_key(request, cache_version):
+    # Chapter order matters for slot assignment even though a whole-paper cache
+    # may serve any ordering of the same selected chapters.
+    order = hashlib.sha256(json.dumps(request.chapters).encode()).hexdigest()[:16]
+    return _generation_cache_key(request, cache_version) + ":partial:" + order
+
+
+def _practice_batches(slots):
+    batches = [slots[start:start + 6] for start in range(0, len(slots), 6)]
+    if len(batches) > 1 and len(batches[-1]) == 1:
+        batches[-2].extend(batches.pop())
+    return batches
+
+
+async def _generate_practice_batches(router, request, blueprint, fallback, context, guidance, *, database=None):
+    """The server owns numbering and marks; models supply bounded question content."""
+    slots = []
+    kinds = {"A": "mcq", "B": "very-short-answer", "C": "short-answer", "D": "long-answer", "E": "case-study"}
+    for section in blueprint["sections"]:
+        for _ in range(section["count"]):
+            number = len(slots) + 1
+            slots.append({"id": f"Q{number}", "section": section["id"], "marks": section["marks"],
+                          "type": kinds[section["id"]], "chapter": request.chapters[(number - 1) % len(request.chapters)]})
+    questions, providers = [], set()
+    reused = 0
+    checkpoint_key = _practice_checkpoint_key(request, router.settings.study_generation_cache_version)
+    checkpoint = _load_cached_paper(database, checkpoint_key) if database else None
+    cached_questions = checkpoint.get("questions", []) if checkpoint and not checkpoint.get("complete") else []
+    if not isinstance(cached_questions, list):
+        cached_questions = []
+    for batch in _practice_batches(slots):
+        def validate_batch(candidate):
+            if candidate is demo:
+                return candidate
+            rows = candidate.get("questions")
+            if not isinstance(rows, list) or len(rows) != len(batch):
+                raise ValueError("Return every assigned question, once")
+            by_id = {row.get("id"): row for row in rows if isinstance(row, dict)}
+            if set(by_id) != {slot["id"] for slot in batch}:
+                raise ValueError("Question IDs must match the assigned slots")
+            normalized = []
+            previous = {" ".join(q["text"].casefold().split()) for q in questions}
+            for slot in batch:
+                question = {**by_id[slot["id"]], **slot}
+                text = question.get("text")
+                if not isinstance(text, str) or not text.strip():
+                    raise ValueError("Question text is missing")
+                key = " ".join(text.casefold().split())
+                if key in previous:
+                    raise ValueError("Repeated question")
+                previous.add(key)
+                _validate_practice_content(question)
+                if slot["type"] == "mcq" and (not isinstance(question.get("options"), list) or len(question["options"]) != 4 or any(not isinstance(o, str) or not o.strip() for o in question["options"]) or len(set(question["options"])) != 4):
+                    raise ValueError("MCQs need four distinct options")
+                if slot["type"] == "case-study" and not question.get("parts"):
+                    raise ValueError("Case studies need marked subparts")
+                if slot["type"] == "case-study" and [part["marks"] for part in question["parts"]] != [1, 1, 2]:
+                    raise ValueError("Case-study subparts must carry 1, 1 and 2 marks")
+                normalized.append(question)
+            candidate = {"questions": normalized, "total_marks": sum(s["marks"] for s in batch), "time_minutes": 1}
+            _validate_generated_paper(candidate, {"total_marks": candidate["total_marks"], "time_minutes": 1}, request)
+            return candidate
+        demo = None
+        start = len(questions)
+        if len(cached_questions) >= start + len(batch):
+            try:
+                cached = validate_batch({"questions": cached_questions[start:start + len(batch)]})
+            except (ValueError, TypeError, KeyError):
+                cached_questions = []
+            else:
+                questions.extend(cached["questions"])
+                providers.update(p for p in checkpoint.get("providers", []) if p in {"gemini", "groq", "nvidia"})
+                reused += len(batch)
+                continue
+        required_questions = []
+        for slot in batch:
+            shape = {**slot, "text": "Write the complete question or case stimulus", "answer_outline": "Worked answer covering every subpart"}
+            if slot["type"] == "mcq":
+                shape["options"] = ["First option", "Second option", "Third option", "Fourth option"]
+            if slot["type"] == "case-study":
+                shape["parts"] = [{"text": "Write a distinct subquestion", "marks": marks, "answer_outline": "Worked subpart answer"} for marks in (1, 1, 2)]
+            required_questions.append(shape)
+        prompt = json.dumps({
+            "task": "Write only the assigned slots, using the supplied curriculum context. Preserve IDs. previous_question_texts is an EXCLUSION LIST, not examples to reuse: never repeat or lightly reword any listed question. Also make every question in this batch distinct. The server supplies section, chapter, marks and type. Use varied board-exam phrasing: application and reasoning, not repeated definitions. For Computer Science use indented fenced Python code, output tracing, debugging and programming where the selected chapter supports them; do not introduce SQL or networks from unselected chapters. Case studies need a concrete stimulus and parts whose marks sum to the slot marks. Long answers may include an equivalent internal OR choice. Include worked answer_outline for every question, part and OR. Never expose answers in question text. Use JSON-escaped LaTeX in $...$ for mathematics. Include a supported diagram whenever the question depends on a figure; never refer to an absent figure. Use flow diagrams for computer relationships where relevant. If a figure cannot be represented, write a self-contained text question instead.",
+            "subject": request.subject, "grade": request.grade, "board": request.board, "focus": request.focus,
+            "slots": batch, "local_study_context": context, "local_paper_setting_guidance": guidance,
+            "format_boundary": "This is selected-chapter practice adapted to 40/80 marks, not an official full-syllabus paper. Local guidance informs phrasing, not the assigned slot counts.",
+            "diagram_guidance": DIAGRAM_GUIDANCE, "previous_question_texts": [q["text"] for q in questions],
+            "required_shape": {"questions": required_questions},
+            "optional_fields": {"diagram": "supported JSON object", "alternative": {"text": "equivalent OR question", "marks": 5, "answer_outline": "worked answer"}},
+            "field_rules": "Follow every required question shape exactly, replacing only instructional text with original content. Case-study parts are MANDATORY arrays with marks 1, 1 and 2; do not put subquestions only inside the parent text. Omit unused optional fields. Options are for MCQs only. Every part mark is numeric; all part marks sum to its slot marks. An OR alternative carries the slot marks. Chemistry formulas may use the mhchem ce command inside LaTeX math."
+        }, ensure_ascii=False)
+        batch_ids = {s["id"] for s in batch}
+        demo = {"questions": [q for q in fallback["questions"] if q["id"] in batch_ids]}
+        result = await router.generate_json(system="You are a subject examiner. Return JSON only, grounded in the local context. Solve and check each answer before returning. Do not invent official approval or placeholder questions.", prompt=prompt, fallback=demo, transform=validate_batch)
+        # Offline examples remain explicitly labelled and never pass as live content.
+        if result.provider == "mock":
+            return fallback, "mock"
+        questions.extend(result.value["questions"])
+        providers.add(result.provider)
+        if database:
+            _store_cached_paper(database, checkpoint_key, {"questions": questions, "providers": sorted(providers)}, result.provider, router.settings.study_generation_cache_hours)
+    paper = {**fallback, "questions": questions, "is_demo": False, "reused_questions": reused, "instructions": [
+        f"This paper contains {len(slots)} questions in Sections A to E. All questions are compulsory; attempt only one option wherever OR is given.",
+        *[f"Section {s['id']}: {s['count']} questions carrying {s['marks']} mark(s) each." for s in blueprint["sections"]],
+        "Marks for each question are shown in the right margin. Subpart marks add up to the question total.",
+        "Show your working. Read code and supplied figures carefully; schematic diagrams are not to scale.",
+        "Selected-chapter practice adapted to the stated marks and duration. Independently generated; educator review is required. This is not an official board paper."]}
+    _validate_generated_paper(paper, blueprint, request)
+    return paper, ",".join(sorted(providers))
+
+
+def _validate_practice_content(question, depth=0):
+    if depth > 2 or not isinstance(question, dict):
+        raise ValueError("Invalid nested question")
+    if any(not isinstance(question.get(k), str) or not question[k].strip() for k in ("text", "answer_outline")):
+        raise ValueError("Each question and subpart needs text and a worked answer")
+    marks = question.get("marks")
+    if type(marks) not in (int, float) or not math.isfinite(marks) or marks <= 0:
+        raise ValueError("Invalid question marks")
+    validate_diagram(question.get("diagram"))
+    options = question.get("options")
+    if options is not None and (not isinstance(options, list) or len(options) not in (0, 4) or any(not isinstance(option, str) or not option.strip() for option in options)):
+        raise ValueError("Options must be four nonempty strings")
+    parts = question.get("parts")
+    if parts is not None:
+        if not isinstance(parts, list) or not 1 <= len(parts) <= 6:
+            raise ValueError("Invalid subparts")
+        for part in parts:
+            _validate_practice_content(part, depth + 1)
+        if sum(p["marks"] for p in parts) != marks:
+            raise ValueError("Subpart marks must sum to question marks")
+    alternative = question.get("alternative")
+    if alternative is not None:
+        _validate_practice_content(alternative, depth + 1)
+        if alternative["marks"] != marks:
+            raise ValueError("OR options must carry equal marks")
+
 
 
 def _generation_cache_key(request: StudyPaperRequest, cache_version: str) -> str:
@@ -97,6 +234,7 @@ def _generation_cache_key(request: StudyPaperRequest, cache_version: str) -> str
     canonical = {
         "version": cache_version,
         "diagram_schema": 1,
+        "practice_format": "batched-v3",
         "board": request.board,
         "grade": request.grade,
         "subject": request.subject,

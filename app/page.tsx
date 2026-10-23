@@ -1,15 +1,11 @@
+import { brandSchema, siteHref, pageMetadata } from "../lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader, SiteFooter } from "./components/SiteChrome";
 import { getCurrentUser } from "../lib/auth";
 import { StartHere } from "./components/StartHere";
 
-export const metadata: Metadata = {
-  title: "Paper Shapers — A house of useful ideas",
-  description:
-    "Explore practical tools for learning and neighbourhood discovery — all under one independent umbrella.",
-  alternates: { canonical: "/" },
-};
+export const metadata: Metadata = pageMetadata('/', 'Paper Shapers | CBSE Practice Papers & Local Notices', 'Create CBSE chapter-wise practice papers for Classes 1–12, review AI feedback, or discover local events, classes and community notices with Nearby.');
 
 const portals = [
   {
@@ -18,8 +14,8 @@ const portals = [
     title: "Paper Shapers",
     description:
       "Create chapter-based practice papers, attempt them online, and review formative feedback. Teachers can host Live Rooms.",
-    action: "Enter the AI study lab",
-    href: "/papershapers",
+    action: "Explore CBSE practice papers",
+    href: siteHref("/papershapers"),
     className: "portal-card--study",
     detail: "Classes 1–12 · Live Rooms · AI Grading",
   },
@@ -29,8 +25,8 @@ const portals = [
     title: "Noticeboard",
     description:
       "A digital wall for the places around you — lunch specials, repair shops, classes, offers, events, and useful local finds.",
-    action: "Browse the neighbourhood",
-    href: "/noticeboard",
+    action: "Browse local events and notices",
+    href: siteHref("/noticeboard"),
     className: "portal-card--local",
     detail: "Local posts · Real places · Fresh finds",
   },
@@ -40,13 +36,14 @@ export default async function Home() {
   const user = await getCurrentUser();
   return (
     <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(brandSchema).replace(/</g, "\\u003c") }} />
       <SiteHeader user={user} />
       <section className="home-hero page-shell">
         <div className="hero-copy">
           <p className="kicker"><span>Independent studio</span> · Built in India</p>
           <h1>Two ideas.<br /><em>One useful</em> internet.</h1>
           <p className="hero-lede">
-            Paper Shapers is growing into a small house of practical digital products — each with its own personality, all built to make everyday life a little clearer.
+            Create CBSE chapter-wise practice papers for Classes 1–12 in our AI Study Lab, with formative AI feedback and teacher Live Rooms. Or explore Nearby for local events, classes, offers and community notices.
           </p>
           <div className="hero-actions">
             <a className="button button--dark" href="#ideas">Meet the ideas <span>↓</span></a>
@@ -89,7 +86,7 @@ export default async function Home() {
 
       <StartHere variant="home" />
 
-      <section className="page-shell study-plans"><p className="kicker">Support better study habits</p><h2>Free practice. Optional Study Plus.</h2><p>Start with free chapter practice, or explore Study Plus for higher generation limits and queue priority. Voluntary contributions also help support Paper Shapers.</p><a className="text-link" href="/papershapers#plans">Compare study options →</a></section>
+      <section className="page-shell study-plans"><p className="kicker">Support better study habits</p><h2>Free practice. Optional Study Plus.</h2><p>Start with free chapter practice, or explore Study Plus for higher generation limits and queue priority. Voluntary contributions also help support Paper Shapers.</p><a className="text-link" href={siteHref("/papershapers#plans")}>Compare study options →</a></section>
 
       <section className="manifesto" id="principles">
         <div className="page-shell manifesto__grid">

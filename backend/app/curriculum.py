@@ -6,6 +6,7 @@ import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from .curriculum_titles import chapter_label, chapter_sort_key
 
 csv.field_size_limit(sys.maxsize)
 
@@ -42,13 +43,14 @@ def _read_rows(path_value: str) -> tuple[dict[str, str], ...]:
                 conn = sqlite3.connect(str(db_path))
                 cursor = conn.cursor()
                 cursor.execute(
-                    "SELECT class_label, subject, chapter_title, file_data, board FROM ncert_chapters WHERE length(file_data) > 20"
+                    "SELECT class_label, subject, chapter_title, file_data, board, book_title, chapter_no FROM ncert_chapters WHERE length(file_data) > 20"
                 )
-                for cl, subj, ch, body, board in cursor.fetchall():
+                for cl, subj, ch, body, board, book_title, chapter_no in cursor.fetchall():
                     rows.append({
                         "Class": cl,
                         "Subject": subj,
                         "Chapter": ch,
+                        "Chapter_Label": chapter_label(ch, body or "", book_title, chapter_no),
                         "File_Data": body or "",
                         "Board": board or "CBSE",
                     })
@@ -65,7 +67,9 @@ def _read_rows(path_value: str) -> tuple[dict[str, str], ...]:
         with path.open("r", encoding="utf-8", newline="") as handle:
             for row in csv.DictReader(handle):
                 if row.get("Class") and row.get("Subject") and row.get("Chapter"):
-                    rows.append({key: value or "" for key, value in row.items()})
+                    normalized = {key: value or "" for key, value in row.items()}
+                    normalized["Chapter_Label"] = chapter_label(normalized["Chapter"], normalized.get("File_Data", ""))
+                    rows.append(normalized)
 
     if not rows:
         raise ValueError("Study curriculum source has no usable class, subject, and chapter rows")
@@ -86,7 +90,7 @@ def catalog(path: Path) -> dict[str, Any]:
             continue
         labels[grade] = row["Class"]
         key = (grade, row.get("Board", "CBSE") or "CBSE", row["Subject"])
-        groups.setdefault(key, []).append(row["Chapter"])
+        groups.setdefault(key, []).append(row.get("Chapter_Label", row["Chapter"]))
 
     classes = []
     # Process classes 1 through 12 sequentially
@@ -95,7 +99,7 @@ def catalog(path: Path) -> dict[str, Any]:
         for (row_grade, board, subject), chapters in sorted(groups.items(), key=lambda item: (item[0][0], item[0][2])):
             if row_grade != grade:
                 continue
-            subjects.append({"board": board, "subject": subject, "chapters": sorted(set(chapters), key=str.casefold)})
+            subjects.append({"board": board, "subject": subject, "chapters": sorted(set(chapters), key=chapter_sort_key)})
         if subjects:
             classes.append({"grade": grade, "class_label": labels.get(grade, f"Class {grade}"), "subjects": subjects})
     return {"source": path.name, "classes": classes}
@@ -110,6 +114,10 @@ def validate_selection(path: Path, board: str, grade: str, subject: str, chapter
     if subject_entry is None:
         raise ValueError(f"{subject} is not available for Class {grade} in the installed curriculum source")
     known = {_normal(chapter): chapter for chapter in subject_entry["chapters"]}
+    # Existing saved briefs may still use an earlier extracted title.
+    for row in _read_rows(str(path)):
+        if _grade(row["Class"]) == grade and _normal(row["Subject"]) == _normal(subject) and _normal(row.get("Board", "CBSE")) == _normal(board) and _is_learning_chapter(row["Chapter"]):
+            known[_normal(row["Chapter"])] = row.get("Chapter_Label", row["Chapter"])
     invalid = [chapter for chapter in chapters if _normal(chapter) not in known]
     if invalid:
         raise ValueError("Selected chapters are not available for this class and subject")
@@ -119,12 +127,19 @@ def validate_selection(path: Path, board: str, grade: str, subject: str, chapter
 def context_for_selection(path: Path, board: str, grade: str, subject: str, chapters: list[str], limit_per_chapter: int = 3500, total_limit: int = 14000) -> str:
     selected = {_normal(chapter) for chapter in chapters}
     parts: list[str] = []
+    # Reserve space for every selected chapter, including those near the end of
+    # the source. Sample longer text across the chapter rather than only its intro.
+    chapter_limit = min(limit_per_chapter, max(1, total_limit // max(1, len(selected)) - 200))
     for row in _read_rows(str(path)):
-        if not _is_learning_chapter(row["Chapter"]) or _grade(row["Class"]) != grade or _normal(row.get("Board", "CBSE")) != _normal(board) or _normal(row["Subject"]) != _normal(subject) or _normal(row["Chapter"]) not in selected:
+        if not _is_learning_chapter(row["Chapter"]) or _grade(row["Class"]) != grade or _normal(row.get("Board", "CBSE")) != _normal(board) or _normal(row["Subject"]) != _normal(subject) or not {_normal(row["Chapter"]), _normal(row.get("Chapter_Label", row["Chapter"]))} & selected:
             continue
         body = " ".join(row.get("File_Data", "").split())
         if body:
-            parts.append(f"Chapter: {row['Chapter']}\nApproved local study context: {body[:limit_per_chapter]}")
+            if len(body) > chapter_limit:
+                excerpt_size = max(1, (chapter_limit - 50) // 3)
+                middle = max(excerpt_size, len(body) // 2 - excerpt_size // 2)
+                body = "\n[Excerpt break]\n".join((body[:excerpt_size], body[middle:middle + excerpt_size], body[-excerpt_size:]))
+            parts.append(f"Chapter: {row.get('Chapter_Label', row['Chapter'])}\nApproved local study context: {body}")
         if sum(len(part) for part in parts) >= total_limit:
             break
     return "\n\n".join(parts)[:total_limit]

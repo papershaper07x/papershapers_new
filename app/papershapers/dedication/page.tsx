@@ -1,9 +1,10 @@
+import { pageMetadata } from "../../../lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ScrollReveal } from "../../components/ScrollReveal";
 import { StudyInformationLayout } from "../information-layout";
 
-export const metadata: Metadata = { title: "A small dedication", description: "The personal note behind Paper Shapers." };
+export const metadata: Metadata = pageMetadata('/papershapers/dedication', 'A small dedication', 'The personal note behind Paper Shapers.');
 
 export default async function DedicationPage() {
   return <StudyInformationLayout eyebrow="A small dedication" title={<>For the people who made<br />the long nights feel <em>lighter.</em></>} lede="Paper Shapers began with the belief that a study tool should feel like someone has left the desk lamp on for you. This page is for a brother and a friend who helped make that belief real.">

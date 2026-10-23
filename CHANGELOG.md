@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-10-23
+
+- Implemented public canonicals/social metadata and safe alias redirects, consistent cross-portal navigation, umbrella search copy and structured brand identity. Added per-site robots/sitemaps, offline curriculum discovery with controlled logging, host-specific app identity, source-derived chapter labels with numeric ordering and legacy selection compatibility, regression/crawl tooling and an external acceptance runbook. No new dependencies or database migration.
+
+- Added an evidence-based SEO audit of the root, Study and Nearby sites, including live canonical coverage, changing sitemap completeness, curriculum label quality and corrections to the earlier provisional report. No SEO application changes or deployment.
+
+- Verified a real full Class 11 Computer Science paper through the local web/API/Neon flow: 31 questions, 80 marks, five 1/1/2-mark case studies and two diagrams, including checkpoint recovery. Checked mobile/tablet/desktop layouts and A4 printing; restored the normal provider cap after verification.
+
+
+- Made case-study subparts mandatory in each requested JSON shape (1/1/2 marks) and reserved Gemini 2.5 Flash output space by bounding thinking tokens inside the unchanged output cap.
+
+
+- Added bounded schema-repair feedback to provider fallback and allowed paced board-mock generation/verification sufficient worker and polling time.
+
+
+- Added validated batch checkpoints so failed paper requests can resume without regenerating accepted questions. Full papers now use five batches by merging the final singleton; the reader discloses reused questions. No new schema or dependencies.
+
+
+- Verified local provider credentials and removed three rejected Groq entries from ignored local configuration; retained two valid keys and the original configuration backup. Hosted credentials are unchanged.
+
+- Live generation diagnostics exposed repeated earlier questions and provider throttling. Prompts now explicitly exclude previous questions, and Groq batches are paced for shared free-tier token throughput without increasing retry or site-call caps.
+
+- Connected local web and API configuration to the reviewed existing Neon database using dedicated restricted runtime roles; aligned local service authentication and preserved original environment files in ignored backups. Existing hosted-role passwords and application records are retained; no automatic local-data import or legacy-table retirement.
+
+- Reworked chapter-practice generation into validated batches with server-owned question numbering, marks and types, balanced curriculum excerpts, checked MCQ options, case-study subparts, OR choices and diagrams. Provider fallback now reaches another configured vendor within the existing retry ceiling; missing AI budget tables/grants report service configuration failure. Updated job/polling bounds without increasing site allowances.
+- Restyled saved papers as printable exam sheets with subject/class headings, candidate details, section totals and right-margin marks. Selected-chapter 40/80-mark papers remain explicitly labelled adapted practice. Added regression coverage for full/half assembly, context coverage, vendor fallback and nested content validation.
+
 ## 2026-10-22
 
 - Fixed the Python PostgreSQL adapter's unescaped SQL percent wildcards, which could prevent the generation worker from claiming queued papers. Added an isolated PostgreSQL-wire worker/quota regression command.
@@ -215,12 +242,10 @@ Meaningful repository changes are recorded here so the implementation, product n
 
 - Corrected Study mobile-menu contrast and constrained expanded navigation to the viewport.
 
-
 ## 11 October 2026 — Free AI cost guardrails
 - Enforced five daily account AI requests shared across generation and feedback, independent of optional burst controls, with reset messages and no exhausted-quota payment upsell.
 - Added atomic persistent global provider-call ceilings, bounded key/provider retries, explicit output/input caps, and an operator pause switch.
 - Added migration 0008, runtime grants, cost-control runbook and concurrent/reset/failure tests. Provider currency budgets remain separate dashboard configuration.
-
 
 ## 11 October 2026 — First-party tracing and operational logs
 - Added structured Study API/backend/provider logs, random support references and durable generation queue correlation with wait/execution timing.

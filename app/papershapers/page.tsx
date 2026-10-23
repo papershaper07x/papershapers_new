@@ -1,3 +1,4 @@
+import { canonicalUrl, organizationId, pageMetadata } from "../../lib/seo";
 import type { Metadata } from "next";
 import { SiteFooter, SiteHeader } from "../components/SiteChrome";
 import { StudyBuilder } from "./study-builder";
@@ -6,12 +7,7 @@ import { StudyPlans } from "./study-plans";
 import { getCurrentUser } from "../../lib/auth";
 import { StartHere } from "../components/StartHere";
 
-export const metadata: Metadata = {
-  title: "CBSE chapter practice papers and teacher Live Rooms",
-  description: "Create chapter-based CBSE practice papers, attempt them online, and review formative feedback. Teachers can host Live Rooms for their class.",
-  alternates: { canonical: process.env.NEXT_PUBLIC_STUDY_ORIGIN || "/papershapers" },
-  openGraph: { title: "Paper Shapers Study Lab", description: "CBSE board prep: mock papers, live rooms, and instant score breakdowns." },
-};
+export const metadata: Metadata = pageMetadata('/papershapers', 'CBSE practice papers for Classes 1–12 and teacher Live Rooms', 'Create chapter-based CBSE practice papers, attempt them online, and review formative feedback. Teachers can host Live Rooms for their class.');
 
 export default async function StudyLab() {
   const user = await getCurrentUser();
@@ -19,6 +15,9 @@ export default async function StudyLab() {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "Paper Shapers AI Study Lab",
+    "@id": `${canonicalUrl("/papershapers")}#application`,
+    url: canonicalUrl("/papershapers"),
+    publisher: { "@id": organizationId },
     applicationCategory: "EducationalApplication",
     operatingSystem: "Web",
     description: "An AI-powered CBSE study workspace for creating syllabus-targeted mock papers, live exam rooms, and instant AI rubric evaluation.",

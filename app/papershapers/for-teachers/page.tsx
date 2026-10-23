@@ -1,8 +1,9 @@
+import { pageMetadata } from "../../../lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { StudyInformationLayout } from "../information-layout";
 
-export const metadata: Metadata = { title: "Paper Shapers for teachers and coaching teams", description: "A free CBSE mock-paper workflow that supports teacher-led revision without replacing teacher judgement." };
+export const metadata: Metadata = pageMetadata('/papershapers/for-teachers', 'Paper Shapers for teachers and coaching teams', 'A free CBSE mock-paper workflow that supports teacher-led revision without replacing teacher judgement.');
 
 export default async function TeachersPage() {
   return <StudyInformationLayout eyebrow="For teachers & coaching teams" title={<>Less time rebuilding<br />the same practice set. <em>More room to teach.</em></>} lede="Paper Shapers supports teacher-led revision with clear chapter choices, individual practice, downloadable papers, and a simple way to see what learners need next.">

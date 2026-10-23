@@ -1,3 +1,4 @@
+import { pageMetadata } from "../../../lib/seo";
 import type { Metadata } from "next";
 import { getCurrentUser } from "../../../lib/auth";
 import { billingConfig, membership } from "../../../lib/billing";
@@ -5,7 +6,7 @@ import { getDb } from "../../../db";
 import { SiteHeader, SiteFooter } from "../../components/SiteChrome";
 import Checkout from "./Checkout";
 
-export const metadata: Metadata = { title: "Study Plus & contributions" };
+export const metadata: Metadata = pageMetadata('/papershapers/membership', 'Study Plus & contributions', 'Compare free CBSE chapter practice and optional Study Plus limits, queue priority and contributions.');
 export const dynamic = "force-dynamic";
 
 export default async function MembershipPage() {

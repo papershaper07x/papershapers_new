@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import asyncio
 import logging
 import re
 import time
@@ -20,6 +21,10 @@ LOG = logging.getLogger("paper_backend.llm")
 
 class GenerationUnavailableError(RuntimeError):
     """Raised when a real model is required but none can return a usable response."""
+
+
+class GenerationConfigurationError(GenerationUnavailableError):
+    """A local database setup failure; rotating provider keys cannot fix it."""
 
 
 @dataclass
@@ -47,6 +52,8 @@ class LLMRouter:
     def __init__(self, settings: Settings):
         self.settings = settings
         self._key_cursors = {"gemini": 0, "groq": 0, "nvidia": 0}
+        self._groq_window_lock = asyncio.Lock()
+        self._groq_last_started: float | None = None
 
     async def generate_json(self, *, system: str, prompt: str, fallback: dict[str, Any], transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None, image_base64: str | None = None) -> GenerationResult:
         if not self.settings.llm_enabled:
@@ -58,16 +65,23 @@ class LLMRouter:
         # Per invocation, including key rotation and provider fallback.
         remaining = [self.settings.llm_max_attempts]
         attempts: list[str] = []
-        for provider in self.settings.provider_order:
+        for provider_index, provider in enumerate(self.settings.provider_order):
             if image_base64 and provider != "gemini":
                 continue
             try:
+                feedback = next((item.removeprefix("validation:") for item in reversed(attempts) if item.startswith("validation:")), None)
+                provider_prompt = prompt + (f"\nValidation feedback from the previous response: {feedback}. Return a corrected complete JSON response for exactly the assigned slots." if feedback else "")
+                # Reserve a chance for another configured vendor instead of
+                # spending the entire retry budget on one vendor's key ring.
+                later = self.settings.provider_order[provider_index + 1:]
+                has_alternative = not image_base64 and any(getattr(self.settings, f"{p}_api_keys", ()) for p in later)
+                key_limit = max(1, remaining[0] - 1) if has_alternative else None
                 if provider == "gemini":
-                    result = await self._generate_with_key_ring("gemini", system, prompt, attempts, transform, remaining, image_base64)
+                    result = await self._generate_with_key_ring("gemini", system, provider_prompt, attempts, transform, remaining, image_base64, key_limit)
                 elif provider == "groq":
-                    result = await self._generate_with_key_ring("groq", system, prompt, attempts, transform, remaining)
+                    result = await self._generate_with_key_ring("groq", system, provider_prompt, attempts, transform, remaining, key_limit=key_limit)
                 elif provider == "nvidia":
-                    result = await self._generate_with_key_ring("nvidia", system, prompt, attempts, transform, remaining)
+                    result = await self._generate_with_key_ring("nvidia", system, provider_prompt, attempts, transform, remaining, key_limit=key_limit)
                 elif provider == "mock":
                     if self.settings.allow_mock_fallback:
                         result = GenerationResult(fallback, "mock", attempts)
@@ -80,6 +94,8 @@ class LLMRouter:
                 if transform is not None and provider == "mock":
                     result.value = transform(result.value)
                 return result
+            except GenerationConfigurationError:
+                raise
             except BudgetExhaustedError as error:
                 raise GenerationUnavailableError(str(error)) from error
             except Exception as error:
@@ -89,13 +105,13 @@ class LLMRouter:
             return GenerationResult(fallback, "mock", attempts)
         raise GenerationUnavailableError("No configured language model could return a valid structured response. Check the provider keys, quota, and model names, then try again.")
 
-    async def _generate_with_key_ring(self, provider: str, system: str, prompt: str, attempts: list[str], transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None, remaining: list[int] | None = None, image_base64: str | None = None) -> GenerationResult:
+    async def _generate_with_key_ring(self, provider: str, system: str, prompt: str, attempts: list[str], transform: Callable[[dict[str, Any]], dict[str, Any]] | None = None, remaining: list[int] | None = None, image_base64: str | None = None, key_limit: int | None = None) -> GenerationResult:
         keys = getattr(self.settings, f"{provider}_api_keys")
         if not keys:
             raise RuntimeError("provider key is not configured")
         start = self._key_cursors[provider] % len(keys)
         self._key_cursors[provider] += 1
-        for offset in range(len(keys)):
+        for offset in range(min(len(keys), key_limit) if key_limit is not None else len(keys)):
             if remaining is not None:
                 if remaining[0] <= 0:
                     raise BudgetExhaustedError("The AI retry limit was reached. Please try again later.", scope="retry")
@@ -105,9 +121,21 @@ class LLMRouter:
             try:
                 response = await self._request_provider(provider, system, prompt, keys[index], image_base64=image_base64) if image_base64 else await self._request_provider(provider, system, prompt, keys[index])
                 value = _extract_json(response)
-                result = GenerationResult(transform(value) if transform is not None else value, provider, attempts)
+                try:
+                    validated = transform(value) if transform is not None else value
+                except ValueError as error:
+                    # Transform errors are our bounded schema checks, not raw
+                    # provider text. Give the next attempt an actionable repair.
+                    feedback = str(error)[:160]
+                    attempts.append("validation:" + feedback)
+                    LOG.warning("Structured response rejected: %s", feedback)
+                    prompt += f"\nValidation feedback: {feedback}. Correct the response for the assigned slots."
+                    raise
+                result = GenerationResult(validated, provider, attempts)
                 event("llm.attempt", operation="structured-generation", provider=provider, outcome="completed", duration_ms=elapsed(started))
                 return result
+            except GenerationConfigurationError:
+                raise
             except BudgetExhaustedError:
                 event("llm.attempt", operation="structured-generation", provider=provider, outcome="blocked", duration_ms=elapsed(started))
                 raise
@@ -116,10 +144,19 @@ class LLMRouter:
                 # Store only ordinal/error class; never log or return a credential.
                 attempts.append(f"{provider}:key-{index + 1}:{type(error).__name__}")
                 LOG.warning("%s key slot %d unavailable: %s", provider.title(), index + 1, type(error).__name__)
+                if isinstance(error, httpx.HTTPStatusError):
+                    LOG.warning("%s request rejected with HTTP %d", provider.title(), error.response.status_code)
         raise GenerationUnavailableError(f"Every configured {provider.title()} key failed to return valid structured JSON.")
 
     async def _request_provider(self, provider: str, system: str, prompt: str, api_key: str, image_base64: str | None = None) -> str:
-        reserve_provider_call(Database(self.settings.db_path, self.settings.database_url), self.settings.llm_daily_call_limit, self.settings.llm_monthly_call_limit)
+        if provider == "groq":
+            await self._wait_for_groq_window()
+        try:
+            reserve_provider_call(Database(self.settings.db_path, self.settings.database_url), self.settings.llm_daily_call_limit, self.settings.llm_monthly_call_limit)
+        except Exception as error:
+            if getattr(error, "sqlstate", None) in {"42P01", "42501"}:
+                raise GenerationConfigurationError("The AI budget table or runtime grants are missing. Apply migration 0008_llm_budget with the database owner and grant the backend SELECT/INSERT/UPDATE.") from error
+            raise
         if provider == "gemini":
             return await self._gemini(system, prompt, api_key, image_base64=image_base64) if image_base64 else await self._gemini(system, prompt, api_key)
         if provider == "groq":
@@ -127,6 +164,16 @@ class LLMRouter:
         if provider == "nvidia":
             return await self._openai_compatible("https://integrate.api.nvidia.com/v1/chat/completions", self.settings.nvidia_model, system, prompt, api_key)
         raise RuntimeError("unknown provider")
+
+    async def _wait_for_groq_window(self) -> None:
+        # Free-tier token throughput is shared by an organisation, not an API
+        # key. Keep batches apart instead of rotating rapidly through keys.
+        async with self._groq_window_lock:
+            if self._groq_last_started is not None:
+                delay = self.settings.groq_min_interval_seconds - (time.monotonic() - self._groq_last_started)
+                if delay > 0:
+                    await asyncio.sleep(delay)
+            self._groq_last_started = time.monotonic()
 
     async def provider_status(self) -> dict[str, Any]:
         status: dict[str, Any] = {
@@ -144,11 +191,16 @@ class LLMRouter:
         parts = [{"text": prompt}]
         if image_base64:
             parts.append({"inline_data": {"mime_type": "image/webp", "data": image_base64}})
+        generation_config = {"temperature": 0.2, "responseMimeType": "application/json", "maxOutputTokens": self.settings.llm_max_output_tokens}
+        if self.settings.gemini_model.startswith("gemini-2.5-flash"):
+            # Thinking consumes the same output budget as the JSON answer.
+            # Reserve most tokens for complete question/subpart structures.
+            generation_config["thinkingConfig"] = {"thinkingBudget": min(self.settings.gemini_thinking_budget, self.settings.llm_max_output_tokens // 4)}
         async with httpx.AsyncClient(timeout=self.settings.timeout_seconds) as client:
             response = await client.post(url, headers={"x-goog-api-key": api_key, "Content-Type": "application/json"}, json={
                 "systemInstruction": {"parts": [{"text": system}]},
                 "contents": [{"role": "user", "parts": parts}],
-                "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json", "maxOutputTokens": self.settings.llm_max_output_tokens},
+                "generationConfig": generation_config,
             })
             response.raise_for_status()
             data = response.json()

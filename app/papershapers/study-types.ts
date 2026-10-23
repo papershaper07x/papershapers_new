@@ -35,8 +35,9 @@ export type StudyPaper = {
   instructions: string[];
   questions: StudyQuestion[];
   provider: string;
-  generation_source?: "fresh" | "cached-recovery";
+  generation_source?: "fresh" | "cached-recovery" | "batch-recovery";
   cached_from_provider?: string;
+  reused_questions?: number;
   is_demo: boolean;
   created_at: string;
 };
@@ -49,7 +50,7 @@ export type StudyPaperRecord = {
   subject: string;
   provider: string;
   status: string;
-  generation_source?: "fresh" | "cached-recovery";
+  generation_source?: "fresh" | "cached-recovery" | "batch-recovery";
   created_at: string;
   paper: StudyPaper;
 };

@@ -1,5 +1,7 @@
 # Study Lab portal
 
+SEO: public Study information/journal pages declare their preferred subdomain canonical and page-specific social metadata. Shared navigation sends curriculum traffic to its root-domain home. Source-derived chapter headings sort numerically while legacy saved briefs retain matching context. Discovery falls back to a bundled class/subject snapshot during backend outages. See the [SEO runbook](../../docs/SEO_IMPLEMENTATION.md) for refresh, verification and Search Console steps.
+
 Performance: Study navigation streams a lightweight loading message, and shared navigation/search links do not eagerly fetch unrelated pages. Session reads deduplicate within one server render. The public chapter catalogue is cached on the web server for up to one hour; backend validation remains authoritative when generating a paper. Journal reads initialise editorial guides independently of account/session checks. Generation and feedback retain their server-enforced quotas; a `429` response is a limit response, not a loading failure. Free backend cold starts can still delay uncached backend requests.
 
 ## Product boundary
@@ -140,3 +142,17 @@ Journal submissions now require same-origin requests, bounded input and a persis
 ## Vercel deployment — 22 October 2026
 
 Use the repository root and the [Vercel setup and Netlify retirement guide](../../docs/production/02-vercel/README.md). Keep https://study.papershapers.in/papershapers as the public navigation base. The existing Python worker stays separate; provider secrets remain there. Apply schema/grants in a trusted release step before the read-only Vercel prebuild. Netlify build preparation is removed.
+
+
+## Chapter-practice paper generation and layout
+
+Chapter practice uses a server-owned 40/80-mark plan with Sections A–E. Questions are generated in groups of six, with a final singleton merged into the preceding batch (up to seven), with fixed IDs, chapters, types and marks, then validated before any complete paper is saved. MCQs require four distinct options; case studies require marked subparts; internal OR choices carry equal marks. Worked answers and bounded diagrams are validated recursively. Context excerpts reserve room for each selected chapter and include later material, reducing introduction-only questions. A completed paper consumes one account slot; provider calls for each batch and retry still count against the site allowance. Failed jobs release the account slot and never publish partial papers.
+
+The reader uses an exam-sheet layout: subject/class heading, candidate details, time and maximum marks, general instructions, section totals, continuous question numbers and marks in the right margin. Code keeps its indentation; supported SVG schematics render inline with accessible descriptions. Browser printing uses A4 margins and preserves question blocks. Practice is explicitly adapted to selected chapters and 40/80 marks, rather than claiming the official blueprint for every subject. Board-mock mode retains its separate reviewed-profile boundary.
+
+Full practice jobs have an 11-minute execution limit and 12-minute crash lease; half papers have 7 and 8 minutes. The planner polls for up to 20 minutes for full papers. Generation remains subject to provider availability and operator budgets, with no paid hosting dependency.
+
+
+For local testing against Neon, web authentication and API-generated papers must use the same database through separate restricted roles; their local service secrets must match. Existing account and paper data stays in that database. A successful generation check uses a clearly named temporary verification account, removed with its dependent records after validation; provider-call accounting is retained.
+
+Validated question batches are checkpointed in the existing identity-free generation cache. A failed request can reuse a validated prefix for the same brief and chapter order; partial questions never appear in the library as a completed paper. The reader discloses resumed questions. Completed-paper checkpoints are marked consumed so a new normal request can generate fresh questions.

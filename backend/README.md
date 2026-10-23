@@ -1,5 +1,7 @@
 # Local backend
 
+Curriculum labels recover explicit numbered chapter headings from installed text and sort naturally. Original records and legacy selection strings are preserved; both old and cleaned briefs match the same source context. The scraper uses the same parser. Refresh the web discovery snapshot after changing class/subject coverage; see [SEO operations](../docs/SEO_IMPLEMENTATION.md). No provider calls or schema migration are needed for these corrections.
+
 This directory is the independently deployable FastAPI service. It uses PostgreSQL whenever `DATABASE_URL` is configured and retains SQLite as an isolated test fallback. Production targets Render with Neon PostgreSQL. The configurable language-model router is server-only and does not depend on copied legacy projects.
 
 ## Run locally
@@ -122,3 +124,20 @@ Use one API/worker process for the pilot. Idle Study polling backs off to ten mi
 
 ## Production audit
 The Vercel migration does not move the persistent worker into web functions. Keep one backend process initially and validate pooled Neon connectivity, approved curriculum packaging/licensing, ALLOW_MOCK_FALLBACK=false, service authentication, provider quotas, restore and deployed memory. /version now labels the production-audit release; compare its commit with the web Vercel SHA during staging. Owner DB credentials belong in a separate migration step, never ordinary web functions. See docs/production/README.md.
+
+
+## Practice generation troubleshooting
+
+Chapter-practice generation uses six question slots, with a final singleton merged into the preceding batch (up to seven) per model response. The default plans need three calls for a half paper and five for a full paper before retries; site-wide call budgets are unchanged. Two attempts are available per batch by default. When several vendors are configured, the router reserves one attempt for another vendor instead of consuming the entire ceiling on one key ring. No partial paper is saved. Worker execution limits are 420 seconds (half) and 660 seconds (full), with a 60-second crash-lease margin; board-mock has a 1500-second execution limit to accommodate paced generation and independent verification.
+
+A missing `llm_call_budget` relation or missing grants blocks calls before any provider request. This is service configuration, not invalid AI output. Confirm migration `0008_llm_budget` exists and the API role has SELECT/INSERT/UPDATE. Set `MIGRATION_DATABASE_URL` in ignored `backend/.env` to the owner connection for the same database, retain the restricted `DATABASE_URL`, and run `powershell -ExecutionPolicy Bypass -File .\backend.ps1 migrate` from the repository root. The migration runner verifies the target, applies pending migrations and grants in one transaction. Review pending migrations before running it. Restart the backend afterward. Do not expose owner credentials in chat, source control or frontend hosting variables.
+
+Groq requests are spaced by `GROQ_MIN_INTERVAL_SECONDS` (default 60, bounded 0–120) within each API process to avoid spending retries on shared free-tier token throughput. Key rotation does not multiply an organization’s token allowance. Multiple independently deployed API processes still share the external provider limit; this pacing is not a distributed quota service. Existing per-batch attempts and site-wide call caps still apply. Earlier question text is explicitly excluded from later batches.
+
+A configured key count is not an availability check. HTTP 401/403 rejects the credential or its access; verify metadata access and remove rejected local entries instead of increasing call caps or rotating hosted passwords. HTTP status diagnostics omit credentials and response bodies. A valid metadata response does not guarantee remaining generation quota.
+
+The existing generation cache now checkpoints validated prefixes for retry. Checkpoints are revalidated against the slot plan and chapter order and contain no account or attempt IDs. Only complete papers are published. Complete checkpoints are consumed after the whole paper enters the cache. The full plan uses five batches (6/6/6/6/7); half uses three (6/6/5).
+
+Schema rejection feedback is bounded to 160 characters and supplied to the next configured provider within the existing attempt ceiling. Logs show the local validator reason and HTTP status without raw response bodies or credentials.
+
+Case-study slots now include mandatory per-question JSON shapes with three subparts carrying 1/1/2 marks, rather than describing parts as an optional generic field. Gemini 2.5 Flash thinking is bounded by `GEMINI_THINKING_BUDGET` (default 1024, never more than one quarter of the existing output cap), leaving room for complete JSON; other model families keep their existing configuration.

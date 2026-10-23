@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 
 from .curriculum import validate_selection
 from .database import Database
-from .llm_router import LLMRouter, GenerationUnavailableError
+from .llm_router import LLMRouter, GenerationUnavailableError, GenerationConfigurationError
 from .schemas import StudyPaperRequest
 from .study import generate_paper
 from .study_quota import reserve_generation
@@ -18,8 +18,8 @@ from .llm_budget import BudgetExhaustedError
 from .observability import event, elapsed, request_id, valid_trace_id
 
 logger = logging.getLogger(__name__)
-RUN_SECONDS = 240
-LEASE_SECONDS = 300
+PRACTICE_RUN_SECONDS = {"half": 420, "full": 660}
+LEASE_MARGIN_SECONDS = 60
 _worker_loop: asyncio.AbstractEventLoop | None = None
 _worker_event: asyncio.Event | None = None
 
@@ -65,6 +65,7 @@ def job_status(database: Database, job_id: str, user_id: str) -> dict | None:
         trace_id = metadata.get("trace_id")
         reference = f" Support reference: {valid_trace_id(trace_id)}." if trace_id else ""
         messages = {
+            "service-configuration": "Paper generation is temporarily unavailable while the service is being updated. Please try again later.",
             "provider-budget": "The site's AI provider allowance is exhausted. This is separate from your account allowance. Please try after the site allowance resets.",
             "provider-unavailable": "The AI providers could not produce a valid paper. The service needs its provider configuration or availability checked before retrying.",
         }
@@ -91,8 +92,11 @@ async def run_next(database: Database, router: LLMRouter) -> bool:
         row = rows[0] if rows else None
         if row is None:
             return False
-        run_seconds = 900 if json.loads(row["paper_json"])["request"].get("mode") == "board-mock" else RUN_SECONDS
-        claim = f"job-running:{now + run_seconds + 60}"
+        brief = json.loads(row["paper_json"])["request"]
+        # A board mock also independently verifies each group. Twenty calls at
+        # free-tier pacing need more time than the chapter-practice path.
+        run_seconds = 1500 if brief.get("mode") == "board-mock" else PRACTICE_RUN_SECONDS.get(brief.get("paper_size"), 420)
+        claim = f"job-running:{now + run_seconds + LEASE_MARGIN_SECONDS}"
         changed = db.execute("UPDATE generated_papers SET status = ? WHERE id = ? AND status = ?", (claim, row["id"], row["status"])).rowcount
         if not changed:
             return False
@@ -116,7 +120,7 @@ async def run_next(database: Database, router: LLMRouter) -> bool:
         with database.connect() as db:
             metadata = json.loads(row["paper_json"])
             site_budget_exhausted = isinstance(error.__cause__, BudgetExhaustedError) and error.__cause__.scope == "site"
-            metadata["failure"] = "provider-budget" if site_budget_exhausted else "provider-unavailable" if isinstance(error, GenerationUnavailableError) else "generation-failed"
+            metadata["failure"] = "service-configuration" if isinstance(error, GenerationConfigurationError) else "provider-budget" if site_budget_exhausted else "provider-unavailable" if isinstance(error, GenerationUnavailableError) else "generation-failed"
             db.execute("UPDATE generated_papers SET status = 'job-failed', paper_json = ? WHERE id = ? AND status = ?", (json.dumps(metadata), row["id"], claim))
     finally:
         request_id.reset(trace_token)

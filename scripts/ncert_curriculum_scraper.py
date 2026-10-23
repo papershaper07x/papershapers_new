@@ -68,6 +68,8 @@ TEXTBOOK_PAGE = f"{NCERT_BASE_URL}/textbook.php"
 PDF_BASE_URL = f"{NCERT_BASE_URL}/textbook/pdf"
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+from backend.app.curriculum_titles import chapter_label
 DATA_DIR = PROJECT_ROOT / "data"
 PDF_DIR = DATA_DIR / "ncert_pdfs"
 DB_PATH = DATA_DIR / "curriculum_store.sqlite"
@@ -395,11 +397,7 @@ def run_pipeline(
 
             if downloaded:
                 extracted_text = extract_text_from_pdf(dest_pdf)
-                lines = [line.strip() for line in extracted_text.splitlines() if len(line.strip()) > 3]
-                if lines:
-                    first_few = " — ".join(lines[:2])
-                    if len(first_few) < 80:
-                        chapter_title = f"Chapter {ch}: {first_few}"
+                chapter_title = chapter_label(chapter_title, extracted_text, book_title, ch)
 
             char_count = len(extracted_text)
 
