@@ -7,7 +7,7 @@ const root = new URL("../", import.meta.url);
 test("umbrella home links to every portal", async () => {
   const page = await readFile(new URL("app/page.tsx", root), "utf8");
   for (const route of ["/papershapers", "/noticeboard"]) {
-    assert.match(page, new RegExp(`href: \\"${route}\\"`));
+    assert.ok(page.includes(`href: siteHref("${route}")`), `missing canonical portal link: ${route}`);
   }
 });
 

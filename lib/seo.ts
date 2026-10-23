@@ -39,6 +39,7 @@ export function isPublicPage(path: string) {
 }
 
 export function publicRedirect(host: string, path: string): string | null {
+  if (process.env.VERCEL === "1" && process.env.VERCEL_ENV !== "production") return null;
   const originalPath = path;
   // Preview/local hosts and private workflows must keep their own origin.
   const homeHost = new URL(siteOrigins.home).hostname;

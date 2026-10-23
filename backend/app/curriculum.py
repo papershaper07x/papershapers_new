@@ -68,7 +68,7 @@ def _read_rows(path_value: str) -> tuple[dict[str, str], ...]:
             for row in csv.DictReader(handle):
                 if row.get("Class") and row.get("Subject") and row.get("Chapter"):
                     normalized = {key: value or "" for key, value in row.items()}
-                    normalized["Chapter_Label"] = chapter_label(normalized["Chapter"], normalized.get("File_Data", ""))
+                    normalized["Chapter_Label"] = chapter_label(normalized["Chapter"], normalized.get("File_Data", ""), normalized["Subject"])
                     rows.append(normalized)
 
     if not rows:

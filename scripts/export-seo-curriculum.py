@@ -2,6 +2,7 @@
 import json
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -15,7 +16,6 @@ for entry in data["classes"]:
     paths.append(base)
     for subject in entry["subjects"]:
         slug = "-".join(subject["subject"].lower().strip().split())
-        from urllib.parse import quote
         paths.append(f"{base}/{quote(slug, safe='')}")
 output = ROOT / "app/syllabus/discovery-paths.json"
 output.write_text(json.dumps({"source": "Installed curriculum; refresh when class/subject availability changes", "paths": sorted(set(paths))}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

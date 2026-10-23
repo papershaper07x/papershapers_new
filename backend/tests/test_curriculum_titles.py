@@ -16,6 +16,14 @@ class CurriculumTitleTests(unittest.TestCase):
         self.assertEqual(chapter_label("Chapter 8: Science — Figure 8.1", "An unrelated heading\n7\nCHAPTER", "Science", 8), "Chapter 8 (title pending review)")
         self.assertEqual(chapter_label("Quadratic Equations", "Some body text"), "Quadratic Equations")
 
+    def test_unreviewed_book_layouts_do_not_infer_labels_from_nearby_body_text(self):
+        for original, text, book, number in [
+            ("Chapter 6: Math-Mela", "Measuring Length\n6\nChapter", "Math-Mela", 6),
+            ("Chapter 12: Mathematics", "two seconds\n12\nChapter\nLIMITS AND DERIVATIVES", "Mathematics", 12),
+            ("Chapter 1: Biotechnology", "Herbert Boyer\n1\nChapter", "Biotechnology", 1),
+        ]:
+            self.assertEqual(chapter_label(original, text, book, number), original)
+
     @patch("backend.app.curriculum._read_rows")
     def test_natural_order_and_legacy_selection_keep_matching_source_context(self, read_rows):
         read_rows.return_value = tuple({"Class": "Class 10", "Board": "CBSE", "Subject": "Science", "Chapter": old, "Chapter_Label": label, "File_Data": body} for old, label, body in [

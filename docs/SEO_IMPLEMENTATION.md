@@ -21,11 +21,11 @@ Root copy names both products. Organization/WebSite JSON-LD identifies the brand
   python scripts/export-seo-curriculum.py
   ```
 
-  An alternate approved CSV can be supplied as the first argument. This reads the installed source without scraping, generation or database mutation. These paths describe installed material, not certified current-year CBSE coverage.
+  An alternate source path can be supplied as the first argument. It follows the backend's existing SQLite-first, CSV-fallback resolution. This reads installed material without scraping, generation or database mutation. These paths do not certify current-year CBSE coverage.
 
 - Notice approval, expiry and poster eligibility remain authoritative. Only published journal posts enter discovery. Private, pending and dummy content stays excluded; notices and student posts are never supplied from an offline snapshot.
 
-Chapter labels are recovered from explicit numbered `CHAPTER` headings in stored textbook text and sorted numerically. Original source strings/database records are preserved; older saved briefs remain aliases for the same context. Unrecoverable figure/activity labels are marked as pending review instead of invented. Future scraper ingestion uses the same parser. This does not certify every subject's labels or examination coverage; review representative PDFs when installing material.
+Chapter labels are recovered from explicit numbered `CHAPTER` headings in the checked Science/Curiosity book layouts and sorted numerically. Other layouts retain their source labels; known figure/activity artifacts are marked as pending review instead of inferred from captions or body text. Original records are preserved; older saved briefs remain aliases for the same context. Future scraper ingestion uses the same parser. This does not certify every subject's labels or examination coverage; review representative PDFs when installing material.
 
 ## Indexing boundaries
 
@@ -45,6 +45,8 @@ The read-only crawler checks every sitemap entry (bounded to 1,500 URLs, three w
 Also verify per-host robots/manifests, redirects with query strings, unchanged private POST/API behavior, dummy-guide noindex, JSON-LD and social-image availability. Check root/Study/Nearby layouts at 390, 768 and 1440 pixels after visible-copy changes.
 
 ## External acceptance
+
+Local verification on 23 October 2026: production build passed, 66 web tests and 80 backend tests passed, and all 125 current sitemap entries passed status/canonical/indexability checks. Root, Study, Nearby and Class 10 Science passed layout checks at 390, 768 and 1440 pixels with no horizontal overflow. The existing Next.js security advisory still appears during builds; no dependency upgrade was included. Anonymous mobile PageSpeed API requests for all three production landing pages returned HTTP 429, so no performance score or field-data conclusion was obtained.
 
 1. Deploy web and backend changes. Local results do not update production or search results.
 2. In a verified Search Console Domain property, submit the consolidated sitemap or per-site files. Inspect representative portal, curriculum and journal URLs; record Google-selected canonicals, last crawl, indexing reasons and intended account-page exclusions. Review manual actions/security reports. No Search Console account was connected for this implementation.
